@@ -1,0 +1,16 @@
+.success-badge { width: 56px; height: 56px; border-radius: 50%; background: var(--green-tint); display: flex; align-items: center; justify-content: center; }
+.info-box { border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.info-box__value { margin-top: 4px; font-family: var(--font-display); font-weight: 500; font-size: 20px; overflow-wrap: anywhere; }
+.qr-box {
+  margin: 18px auto 0; width: 220px; height: 220px; border-radius: 16px; background: var(--white);
+  border: 2px dashed var(--line-field); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; text-align: center; padding: 16px;
+}
+.slip-drop {
+  position: relative; margin-top: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; min-height: 160px; border: 2px dashed var(--line-field); border-radius: 20px; padding: 20px; text-align: center; cursor: pointer;
+}
+.slip-drop:hover { background: var(--sand-2); }
+.slip-drop:focus-within { outline: 2px solid var(--link); outline-offset: 2px; }
+.slip-done { margin-top: 14px; display: flex; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+.slip-done__icon { width: 56px; height: 72px; border-radius: 8px; background: var(--sky-tint); display: flex; align-items: center; justify-content: center; flex: none; }

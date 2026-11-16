@@ -1,0 +1,9 @@
+.size-bar { position: relative; margin-top: 10px; height: 10px; border-radius: 5px; background: var(--sand-3); }
+.size-bar__fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; transition: width 0.2s ease; }
+.size-bar__mark { position: absolute; top: -4px; width: 2px; height: 18px; background: var(--ink); }
+.size-bar__labels { position: relative; height: 20px; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+.size-bar__labels span { position: absolute; transform: translateX(-50%); }
+
+.quote-card { flex: 1 1 340px; min-width: 0; position: sticky; top: 72px; padding: 26px; }
+.quote-card__kicker { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rust); font-weight: 600; }
+.quote-card__price { margin-top: 8px; font-family: var(--font-display); font-weight: 200; font-size: 60px; line-height: 1; }

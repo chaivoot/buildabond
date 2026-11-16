@@ -1,0 +1,6 @@
+.plan-card { border-radius: 22px; padding: 26px; }
+.plan-card__kicker { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rust); font-weight: 600; }
+.plan-card h3 { margin-top: 8px; font-family: var(--font-display); font-weight: 400; font-size: 26px; }
+.biz-steps { margin: 0; padding: 0; list-style: none; }
+.biz-steps li { border-top: 1px solid var(--line); padding-top: 16px; }
+.biz-steps__n { font-family: var(--font-display); font-weight: 200; font-size: 44px; line-height: 1; color: var(--eyebrow); }
