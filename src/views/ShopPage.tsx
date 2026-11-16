@@ -8,24 +8,24 @@ import { useRouter } from 'next/navigation';
 import { ProductTile } from '../components/ProductTile';
 import { SiteHeader } from '../components/SiteHeader';
 import { img } from '../data/images';
-import { CATEGORIES, PRODUCTS, type CategoryId } from '../data/products';
+import { CATEGORIES, type CategoryId, type Product } from '../data/products';
 import './ShopPage.css';
 
 type Sort = 'featured' | 'asc' | 'desc';
 
-export function ShopPage({ cat }: { cat: CategoryId | 'all' }) {
+export function ShopPage({ cat, products }: { cat: CategoryId | 'all'; products: Product[] }) {
   const router = useRouter();
   const [sort, setSort] = useState<Sort>('featured');
 
   const list = useMemo(() => {
-    const filtered = PRODUCTS.filter((p) => cat === 'all' || p.cat === cat);
+    const filtered = products.filter((p) => cat === 'all' || p.cat === cat);
     if (sort === 'featured') return filtered;
     // Coming-soon items have no price; keep them last.
     return [...filtered].sort((a, b) => {
       if (a.comingSoon !== b.comingSoon) return a.comingSoon ? 1 : -1;
       return sort === 'asc' ? a.price - b.price : b.price - a.price;
     });
-  }, [cat, sort]);
+  }, [cat, sort, products]);
 
   const chips: { id: CategoryId | 'all'; label: string }[] = [{ id: 'all', label: 'ทั้งหมด' }, ...CATEGORIES];
 

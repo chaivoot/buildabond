@@ -15,3 +15,5 @@
 .checkout-items { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
 .checkout-items li { display: flex; gap: 12px; align-items: center; }
 .checkout-items img { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; background: var(--white); flex: none; }
+.checkout-error { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--orange-tint); color: #6e300a; font-size: 14px; }
+.btn:disabled { opacity: 0.6; cursor: default; }

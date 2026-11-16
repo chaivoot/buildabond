@@ -14,3 +14,4 @@
 .slip-drop:focus-within { outline: 2px solid var(--link); outline-offset: 2px; }
 .slip-done { margin-top: 14px; display: flex; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
 .slip-done__icon { width: 56px; height: 72px; border-radius: 8px; background: var(--sky-tint); display: flex; align-items: center; justify-content: center; flex: none; }
+.qr-box--real { padding: 10px; border-style: solid; background: #fff; }
