@@ -6,10 +6,12 @@ import { useState } from 'react';
 import { ColorPicker } from '../components/ColorPicker';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
-import { quoteCustomSize } from '../data/customSize';
+import { quoteCustomSize } from '../lib/customSize';
+import { CUSTOM_KG, CUSTOM_SLUG } from '../lib/pricing';
+import { submitRequest } from '../server/actions/shop';
 import { baht } from '../data/format';
 import { img } from '../data/images';
-import { RUBBER_COLORS } from '../data/products';
+import { RUBBER_COLORS } from '../data/seed';
 import { css } from '../data/style';
 import './CustomPage.css';
 
@@ -26,6 +28,21 @@ export function CustomPage() {
   const [dims, setDims] = useState({ w: '50', l: '50', h: '20' });
   const [color, setColor] = useState(0);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const sendQuote = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    f.set('ขนาด (กว้าง×ยาว×สูง)', `${dims.w} × ${dims.l} × ${dims.h} cm`);
+    f.set('ขนาดรวม', `${q.sum} cm`);
+    f.set('สีผิวยาง', RUBBER_COLORS[color].label);
+    setSending(true);
+    const res = await submitRequest('custom', f).catch(() => ({ ok: false as const, error: 'ส่งไม่สำเร็จ ลองใหม่อีกครั้ง' }));
+    setSending(false);
+    if (res.ok) setSent(true);
+    else setError(res.error);
+  };
 
   const n = (v: string) => Math.max(0, parseFloat(v) || 0);
   const q = quoteCustomSize(n(dims.w), n(dims.l), n(dims.h));
@@ -36,12 +53,15 @@ export function CustomPage() {
   const addToCart = () => {
     if (!q.ok) return;
     add({
+      slug: CUSTOM_SLUG,
+      color,
+      custom: { w: n(dims.w), l: n(dims.l), h: n(dims.h) },
       name: `${q.model} สั่งทำ`,
-      opt: `${dims.w}×${dims.l}×${dims.h} cm · ${c.label}`,
+      opt: `${n(dims.w)}×${n(dims.l)}×${n(dims.h)} cm · ${c.label}`,
       status: 'ผลิตตามสั่ง · 28-35 วัน',
       unitPrice: q.price,
-      kg: 6, // TODO: confirm made-to-measure weights
-      img: img.jumpBox,
+      kg: CUSTOM_KG,
+      img: img.jumpBox.src,
     });
     openDrawer();
   };
@@ -122,11 +142,12 @@ export function CustomPage() {
                 {sent ? (
                   <p className="tag tag--green tag--md" style={{ marginTop: 18 }}>ส่งคำขอแล้ว ทีมจะติดต่อกลับ</p>
                 ) : (
-                  <form className="stack" style={css({ marginTop: 18, '--gap': '12px' })} onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
-                    <label className="field">ชื่อ<input className="input" type="text" autoComplete="name" required style={{ height: 48 }} /></label>
-                    <label className="field">เบอร์โทร หรือ LINE ID<input className="input" type="text" required style={{ height: 48 }} /></label>
-                    <label className="field">ใช้ทำกิจกรรมอะไร (ไม่บังคับ)<textarea className="input" rows={3} /></label>
-                    <button type="submit" className="btn btn--primary btn--lg btn--block">ส่งคำขอใบเสนอราคา</button>
+                  <form className="stack" style={css({ marginTop: 18, '--gap': '12px' })} onSubmit={sendQuote}>
+                    <label className="field">ชื่อ<input className="input" name="_name" type="text" autoComplete="name" required style={{ height: 48 }} /></label>
+                    <label className="field">เบอร์โทร หรือ LINE ID<input className="input" name="_contact" type="text" required style={{ height: 48 }} /></label>
+                    <label className="field">ใช้ทำกิจกรรมอะไร (ไม่บังคับ)<textarea className="input" name="ใช้ทำกิจกรรม" rows={3} /></label>
+                    {error && <p role="alert" className="small" style={{ color: '#8e1f0b' }}>{error}</p>}
+                    <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={sending}>{sending ? 'กำลังส่ง…' : 'ส่งคำขอใบเสนอราคา'}</button>
                   </form>
                 )}
               </>

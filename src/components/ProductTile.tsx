@@ -1,6 +1,6 @@
 import Image from 'next/image';
-import { SIZES } from '../data/sizes';
 import Link from 'next/link';
+import { SIZES } from '../data/sizes';
 import { categoryLabel, productHref, type Product } from '../data/products';
 import './ProductTile.css';
 
@@ -10,9 +10,10 @@ export function ProductTile({ p }: { p: Product }) {
       <div className="product-tile__media tile-bg">
         {p.img && (
           <Image
-            sizes={SIZES.tile}
             src={p.img}
             alt={p.name}
+            fill
+            sizes={SIZES.tile}
             className={p.cover ? 'product-tile__img--cover' : 'product-tile__img--cutout cutout'}
           />
         )}
@@ -24,7 +25,7 @@ export function ProductTile({ p }: { p: Product }) {
         <span className="product-tile__name">{p.name}</span>
         <span className="product-tile__th">{p.th}</span>
         <span className="product-tile__price">{p.priceLabel}</span>
-        {p.colors && (
+        {p.colors.length > 0 && (
           <div className="product-tile__swatches" aria-label={p.swatchesLabel}>
             {p.colors.map((c) => (
               <span key={c.label} className="swatch swatch--sm" style={{ background: c.swatch }} />
@@ -41,7 +42,7 @@ export function MiniProductCard({ p }: { p: Product }) {
   return (
     <Link href={productHref(p)} className="mini-card">
       <div className="tile-bg mini-card__media">
-        <Image src={p.img!} alt={p.name} className="cutout" sizes="200px" />
+        {p.img && <Image src={p.img} alt={p.name} fill sizes="200px" className="cutout" />}
       </div>
       <span className="mini-card__name">{p.name}</span>
       <span className="mini-card__price">{p.priceLabel}</span>

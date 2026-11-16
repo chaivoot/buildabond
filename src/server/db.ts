@@ -1,0 +1,154 @@
+import { SEED_ORDERS, SEED_PRODUCTS, SEED_REQUESTS, SEED_SETTINGS } from '../data/seed';
+
+/**
+ * Tiny SQL layer.
+ * - With DATABASE_URL (set by the Neon integration on Vercel) it talks to Neon Postgres.
+ * - Without it, it falls back to an in-memory Postgres (PGlite) so local dev and builds
+ *   work out of the box. That fallback is NOT persistent; the admin shows a warning.
+ * Tables are created and seeded with demo content automatically on first use.
+ */
+interface Driver {
+  query: <T = Record<string, unknown>>(text: string, params?: unknown[]) => Promise<T[]>;
+  persistent: boolean;
+}
+
+const databaseUrl = () => process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+
+export const isPersistent = () => databaseUrl() !== '';
+
+async function connect(): Promise<Driver> {
+  const url = databaseUrl();
+  if (url) {
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(url);
+    return {
+      persistent: true,
+      query: async <T,>(text: string, params: unknown[] = []) => (await sql.query(text, params)) as T[],
+    };
+  }
+  const { PGlite } = await import('@electric-sql/pglite');
+  const pg = new PGlite();
+  return {
+    persistent: false,
+    query: async <T,>(text: string, params: unknown[] = []) => (await pg.query<T>(text, params)).rows,
+  };
+}
+
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS settings (key text PRIMARY KEY, value jsonb NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS products (
+    slug text PRIMARY KEY,
+    sort integer NOT NULL DEFAULT 0,
+    cat text NOT NULL,
+    name text NOT NULL,
+    th text NOT NULL DEFAULT '',
+    price_label text NOT NULL DEFAULT '',
+    price integer NOT NULL DEFAULT 0,
+    kg real NOT NULL DEFAULT 0,
+    img text NOT NULL DEFAULT '',
+    cover boolean NOT NULL DEFAULT false,
+    badge text NOT NULL DEFAULT '',
+    coming_soon boolean NOT NULL DEFAULT false,
+    custom boolean NOT NULL DEFAULT false,
+    colors jsonb NOT NULL DEFAULT '[]',
+    colors_label text NOT NULL DEFAULT '',
+    swatches_label text NOT NULL DEFAULT '',
+    magnets boolean NOT NULL DEFAULT false,
+    sku text NOT NULL DEFAULT '',
+    stock text NOT NULL DEFAULT 'ready',
+    visible boolean NOT NULL DEFAULT true,
+    detail jsonb NOT NULL DEFAULT '{}',
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS orders (
+    id text PRIMARY KEY,
+    access_key text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    name text NOT NULL,
+    phone text NOT NULL,
+    address text NOT NULL DEFAULT '',
+    note text NOT NULL DEFAULT '',
+    items jsonb NOT NULL,
+    subtotal integer NOT NULL,
+    shipping integer NOT NULL,
+    total integer NOT NULL,
+    kg real NOT NULL,
+    status text NOT NULL,
+    slip_url text NOT NULL DEFAULT '',
+    slip_at timestamptz,
+    confirmed_at timestamptz,
+    shipped_at timestamptz,
+    carrier text NOT NULL DEFAULT '',
+    tracking text NOT NULL DEFAULT ''
+  )`,
+  `CREATE TABLE IF NOT EXISTS requests (
+    id text PRIMARY KEY,
+    kind text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    status text NOT NULL DEFAULT 'ใหม่',
+    name text NOT NULL DEFAULT '',
+    contact text NOT NULL DEFAULT '',
+    data jsonb NOT NULL DEFAULT '{}'
+  )`,
+  `CREATE SEQUENCE IF NOT EXISTS order_seq START 43`,
+];
+
+const json = (v: unknown) => JSON.stringify(v);
+
+async function migrate(d: Driver) {
+  for (const stmt of SCHEMA) await d.query(stmt);
+
+  // Seed exactly once: whoever inserts the marker row does the seeding.
+  const claimed = await d.query(`INSERT INTO settings (key, value) VALUES ('seeded', 'true') ON CONFLICT (key) DO NOTHING RETURNING key`);
+  if (claimed.length === 0) return;
+
+  await d.query(`INSERT INTO settings (key, value) VALUES ('shop', $1) ON CONFLICT (key) DO NOTHING`, [json(SEED_SETTINGS)]);
+  for (const p of SEED_PRODUCTS) {
+    await d.query(
+      `INSERT INTO products (slug, sort, cat, name, th, price_label, price, kg, img, cover, badge, coming_soon, custom, colors,
+        colors_label, swatches_label, magnets, sku, stock, visible, detail)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) ON CONFLICT (slug) DO NOTHING`,
+      [p.slug, p.sort, p.cat, p.name, p.th, p.priceLabel, p.price, p.kg, p.img, p.cover, p.badge, p.comingSoon, p.custom, json(p.colors),
+        p.colorsLabel, p.swatchesLabel, p.magnets, p.sku, p.stock, p.visible, json(p.detail)],
+    );
+  }
+  for (const o of SEED_ORDERS) {
+    await d.query(
+      `INSERT INTO orders (id, access_key, created_at, name, phone, address, note, items, subtotal, shipping, total, kg, status,
+        slip_url, slip_at, confirmed_at, shipped_at, carrier, tracking)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) ON CONFLICT (id) DO NOTHING`,
+      [o.id, 'demo', o.createdAt, o.name, o.phone, o.address, o.note, json(o.items), o.subtotal, o.shipping, o.total, o.kg, o.status,
+        o.slipUrl, o.slipAt, o.confirmedAt, o.shippedAt, o.carrier, o.tracking],
+    );
+  }
+  for (const r of SEED_REQUESTS) {
+    await d.query(
+      `INSERT INTO requests (id, kind, created_at, status, name, contact, data) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING`,
+      [r.id, r.kind, r.createdAt, r.status, r.name, r.contact, json(r.data)],
+    );
+  }
+}
+
+// Kept on globalThis: Next.js may load this module more than once in a single server process
+// (pages and server actions are bundled separately), and the in-memory fallback must be shared.
+const g = globalThis as typeof globalThis & { __bbDb?: Promise<Driver> | null };
+
+function driver(): Promise<Driver> {
+  g.__bbDb ??= connect()
+    .then(async (d) => {
+      await migrate(d);
+      return d;
+    })
+    .catch((err) => {
+      g.__bbDb = null; // retry on the next request
+      throw err;
+    });
+  return g.__bbDb;
+}
+
+/** Run a parameterised query and return the rows. */
+export async function sql<T = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T[]> {
+  return (await driver()).query<T>(text, params);
+}
+
+export { json as toJson };

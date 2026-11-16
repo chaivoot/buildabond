@@ -1,28 +1,65 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { DocIcon, DownloadIcon, QrIcon, UploadIcon } from '../components/Icons';
 import { SiteHeader } from '../components/SiteHeader';
-import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
-import { BANK } from '../data/orders';
+import type { Order, ShopSettings } from '../lib/types';
+import { uploadSlip } from '../server/actions/shop';
 import './OrderPlacedPage.css';
 
-export function OrderPlacedPage() {
-  const { lastOrder, total } = useCart();
-  // Fall back to demo values when the page is opened directly.
-  const order = lastOrder ?? { id: 'BB-261116-0042', total, phone: '081-234-5678' };
+interface Props {
+  order: Order | null;
+  accessKey: string;
+  bank: ShopSettings['bank'];
+  qrSvg: string | null;
+}
+
+export function OrderPlacedPage({ order, accessKey, bank, qrSvg }: Props) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const [file, setFile] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [replacing, setReplacing] = useState(false);
+
+  if (!order) {
+    return (
+      <>
+        <SiteHeader variant="simple" sticky={false} />
+        <main className="container container--narrow" style={{ paddingTop: 36, paddingBottom: 80 }}>
+          <h1 className="display" style={{ fontSize: 'clamp(34px, 8vw, 52px)', letterSpacing: 0 }}>ไม่พบออร์เดอร์</h1>
+          <p className="lead" style={{ marginTop: 10, fontSize: 16 }}>ลิงก์อาจไม่ครบ ลองเช็กสถานะด้วยเลขออร์เดอร์และเบอร์โทร</p>
+          <Link href="/track" className="btn btn--primary" style={{ marginTop: 24 }}>ติดตามออร์เดอร์</Link>
+        </main>
+      </>
+    );
+  }
+
+  const qrSrc = qrSvg ? `data:image/svg+xml;utf8,${encodeURIComponent(qrSvg)}` : null;
+  const hasSlip = !!order.slipUrl && !replacing;
 
   const copy = async () => {
     try {
-      await navigator.clipboard?.writeText(BANK.number.replace(/-/g, ''));
+      await navigator.clipboard?.writeText(bank.number.replace(/\D/g, ''));
     } catch {
       /* clipboard may be blocked; still show feedback */
     }
     setCopied(true);
+  };
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    const f = new FormData();
+    f.set('file', file);
+    const res = await uploadSlip(order.id, accessKey, f).catch(() => ({ ok: false as const, error: 'อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง' }));
+    setUploading(false);
+    if (!res.ok) return setError(res.error);
+    setReplacing(false);
+    router.refresh();
   };
 
   return (
@@ -46,22 +83,28 @@ export function OrderPlacedPage() {
 
         <section className="panel" style={{ marginTop: 28 }}>
           <h2 className="num-display" style={{ fontWeight: 400, fontSize: 22 }}>สแกนจ่ายด้วยพร้อมเพย์</h2>
-          {/* TODO: generate the PromptPay QR for the order total */}
-          <div className="qr-box">
-            <QrIcon style={{ color: 'var(--ink-2)' }} />
-            <span className="small">QR พร้อมเพย์<br />ระบบสร้างตามยอด {baht(order.total)}</span>
-          </div>
-          <button type="button" className="btn btn--outline btn--sm" style={{ margin: '14px auto 0', display: 'flex' }}>
-            <DownloadIcon />บันทึกรูป QR
-          </button>
+          {qrSrc ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- inline SVG data URL */}
+              <img src={qrSrc} alt={`QR พร้อมเพย์ ยอด ${baht(order.total)}`} className="qr-box qr-box--real" width={220} height={220} />
+              <a href={qrSrc} download={`promptpay-${order.id}.svg`} className="btn btn--outline btn--sm" style={{ margin: '14px auto 0', display: 'flex', width: 'fit-content' }}>
+                <DownloadIcon />บันทึกรูป QR
+              </a>
+            </>
+          ) : (
+            <div className="qr-box">
+              <QrIcon style={{ color: 'var(--ink-2)' }} />
+              <span className="small">QR พร้อมเพย์จะแสดงที่นี่<br />เมื่อร้านตั้งค่าพร้อมเพย์แล้ว</span>
+            </div>
+          )}
 
           <div className="divider-top" style={{ marginTop: 22, paddingTop: 18 }}>
             <p className="muted" style={{ fontSize: 14 }}>หรือโอนเข้าบัญชี</p>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div>
-                <p className="strong">{BANK.name}</p>
-                <p className="num-display" style={{ marginTop: 4, fontSize: 26, letterSpacing: '0.04em' }}>{BANK.number}</p>
-                <p className="muted" style={{ marginTop: 2, fontSize: 14 }}>{BANK.holder}</p>
+                <p className="strong">{bank.name}</p>
+                <p className="num-display" style={{ marginTop: 4, fontSize: 26, letterSpacing: '0.04em' }}>{bank.number}</p>
+                <p className="muted" style={{ marginTop: 2, fontSize: 14 }}>{bank.holder}</p>
               </div>
               <button type="button" className="btn btn--primary btn--sm" onClick={copy}>{copied ? 'คัดลอกแล้ว' : 'คัดลอกเลขบัญชี'}</button>
             </div>
@@ -70,24 +113,28 @@ export function OrderPlacedPage() {
 
         <section style={{ marginTop: 28 }}>
           <h2 className="num-display" style={{ fontWeight: 400, fontSize: 22 }}>อัปโหลดสลิป</h2>
-          {file ? (
+          {hasSlip ? (
             <div className="slip-done">
               <div className="slip-done__icon"><DocIcon style={{ color: 'var(--link)' }} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p className="strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file}</p>
-                <p style={{ marginTop: 4, fontSize: 14, color: 'var(--green)' }}>ส่งสลิปแล้ว รอทีมตรวจสอบ</p>
+                <p className="strong">ส่งสลิปแล้ว</p>
+                <p style={{ marginTop: 4, fontSize: 14, color: 'var(--green)' }}>
+                  {order.status === 'ส่งสลิปแล้ว' ? 'รอทีมตรวจสอบ' : order.status === 'รอชำระ' ? 'รอทีมตรวจสอบ' : `สถานะ: ${order.status}`}
+                </p>
               </div>
-              <button type="button" className="text-btn" style={{ padding: '0 12px' }} onClick={() => setFile('')}>เปลี่ยน</button>
+              {(order.status === 'ส่งสลิปแล้ว' || order.status === 'รอชำระ') && (
+                <button type="button" className="text-btn" style={{ padding: '0 12px' }} onClick={() => setReplacing(true)}>เปลี่ยน</button>
+              )}
             </div>
           ) : (
-            <label className="slip-drop">
+            <label className="slip-drop" aria-busy={uploading}>
               <UploadIcon style={{ color: 'var(--link)' }} />
-              <span className="strong">เลือกรูปสลิป</span>
-              <span className="small">JPG หรือ PNG จากแอปธนาคาร</span>
-              {/* TODO: upload the slip to the backend */}
-              <input type="file" accept="image/*" className="visually-hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f.name); }} />
+              <span className="strong">{uploading ? 'กำลังอัปโหลด…' : 'เลือกรูปสลิป'}</span>
+              <span className="small">JPG หรือ PNG จากแอปธนาคาร ไม่เกิน 4 MB</span>
+              <input type="file" accept="image/*" className="visually-hidden" disabled={uploading} onChange={(e) => onFile(e.target.files?.[0])} />
             </label>
           )}
+          {error && <p role="alert" className="small" style={{ marginTop: 10, color: '#8e1f0b' }}>{error}</p>}
         </section>
 
         <div className="stack" style={{ marginTop: 28 }}>
@@ -95,7 +142,7 @@ export function OrderPlacedPage() {
           <Link href="/" className="btn btn--ghost btn--block">กลับหน้าแรก</Link>
         </div>
         <p className="small" style={{ marginTop: 18, lineHeight: 1.7 }}>
-          เก็บเลขออร์เดอร์ไว้ ใช้คู่กับเบอร์โทร {order.phone || 'ที่ใช้สั่งซื้อ'} เพื่อเช็กสถานะได้ทุกเมื่อ
+          เก็บลิงก์หน้านี้หรือเลขออร์เดอร์ไว้ ใช้คู่กับเบอร์โทร {order.phone} เพื่อเช็กสถานะได้ทุกเมื่อ
         </p>
       </main>
     </>

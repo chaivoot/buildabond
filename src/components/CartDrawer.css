@@ -20,7 +20,7 @@
 .cart-drawer__head h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; }
 .cart-drawer__head h2 span { font-size: 15px; color: var(--ink-2); }
 .cart-drawer__ship { padding: 12px 20px; background: var(--sand); font-size: 13px; line-height: 1.55; }
-.cart-drawer__tiers { margin-top: 8px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.cart-drawer__tiers { margin-top: 8px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; }
 .cart-drawer__tiers > div { display: flex; flex-direction: column; gap: 4px; }
 .cart-drawer__tier-bar { height: 4px; border-radius: 2px; background: var(--line-strong); }
 .cart-drawer__tier-bar[data-on='true'] { background: var(--ink); }

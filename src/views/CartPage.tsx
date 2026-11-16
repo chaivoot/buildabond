@@ -7,14 +7,15 @@ import { QtyStepper } from '../components/QtyStepper';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
-import { findProduct } from '../data/products';
-import { SHIPPING_TIERS } from '../data/shipping';
+import type { Product } from '../data/products';
+import { useShopSettings } from '../context/SettingsContext';
+import { tierRange } from '../lib/shipping';
 import { css } from '../data/style';
 import './CartPage.css';
 
-export function CartPage() {
+export function CartPage({ crossSell }: { crossSell: Product[] }) {
   const { items, count, subtotal, kg, tier, shipping, total, setQty, remove } = useCart();
-  const crossSell = ['slant-box', 'narrow-target'].map(findProduct).filter((p) => p !== undefined);
+  const { shipping: tiers } = useShopSettings();
 
   return (
     <>
@@ -25,7 +26,7 @@ export function CartPage() {
           <ul className="split__main cart-list">
             {items.map((it) => (
               <li key={it.id} className="cart-line">
-                <Image src={it.img} alt="" sizes="96px" />
+                <Image src={it.img} alt="" width={96} height={96} />
                 <div className="cart-line__info">
                   <div className="sum-row">
                     <span className="cart-line__name">{it.name}</span>
@@ -57,9 +58,9 @@ export function CartPage() {
             <table className="ship-table">
               <caption>อัตราค่าส่งตามน้ำหนักรวม</caption>
               <tbody>
-                {SHIPPING_TIERS.map((t, i) => (
-                  <tr key={t.range} data-current={i === tier}>
-                    <td>{t.range}</td>
+                {tiers.map((t, i) => (
+                  <tr key={i} data-current={i === tier}>
+                    <td>{tierRange(tiers, i)}</td>
                     <td style={{ textAlign: 'right' }}>{baht(t.fee)}</td>
                   </tr>
                 ))}

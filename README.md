@@ -12,29 +12,42 @@ npm run build
 
 Product pages are prerendered at build time with their own title, description and Open Graph image. `sitemap.xml` and `robots.txt` are generated. Set `NEXT_PUBLIC_SITE_URL` in Vercel once a custom domain is attached so link previews and the sitemap use it.
 
+## Setup on Vercel
+
+| What | How | Without it |
+| --- | --- | --- |
+| Database | Vercel → Storage → **Neon** → connect to this project (sets `DATABASE_URL`) | Falls back to an in-memory database: the site works, but admin edits and orders are lost on restart |
+| Image uploads | Vercel → Storage → **Blob** → connect (sets `BLOB_READ_WRITE_TOKEN`) | Uploaded slips and product photos are stored inside the database |
+| Admin password | Environment variable `ADMIN_PASSWORD` | `/admin` can't be opened |
+| Site URL | `NEXT_PUBLIC_SITE_URL`, once a custom domain is attached | Link previews and the sitemap use the `.vercel.app` domain |
+
+Redeploy after adding variables. Tables are created and filled with the demo content automatically the first time the site talks to an empty database.
+
 ## Routes
 
 | Path | Page |
 | --- | --- |
 | `/` | Home |
 | `/shop?cat=sb\|ip\|tug` | All products, filterable |
-| `/products/:slug` | Product page (Place Board has the full template) |
-| `/custom` | Made-to-measure price calculator |
-| `/business` | Wholesale / dropship |
+| `/products/:slug` | Product page |
+| `/custom` | Made-to-measure price calculator and quote request |
+| `/business` | Wholesale / dropship and lead form |
 | `/cart` | Full cart (the header bag icon opens the cart drawer) |
-| `/checkout` → `/order-placed` | Checkout and payment instructions |
-| `/track` | Order status lookup |
-| `/admin` | Admin order queue |
+| `/checkout` → `/order-placed?id=…&k=…` | Checkout, then payment page with PromptPay QR and slip upload |
+| `/track` | Order status lookup (order number + phone) |
+| `/admin` | Admin: orders, products, requests, shop settings (password protected) |
 
 ## Structure
 
 - `src/app/` – routes, layout (fonts via `next/font`), metadata, sitemap, robots
-- `src/views/` – page bodies rendered by each route
-- `src/styles/global.css` – design tokens and shared classes (buttons, fields, chips, tags, panels)
-- `src/components/` – header, footer, cart drawer, product tile, color picker, qty stepper, status pill
-- `src/context/CartContext.tsx` – cart state, weight-based shipping, placed order
-- `src/data/` – catalog, shipping tiers, custom-size pricing, demo orders
+- `src/views/` – page bodies; `src/views/admin/` for the admin
+- `src/server/` – database (`db.ts`), queries per table, server actions, uploads
+- `src/lib/` – shared logic: types, pricing, shipping tiers, PromptPay payload, admin auth
+- `src/data/seed.ts` – demo catalogue, orders and requests loaded into an empty database
+- `src/styles/global.css` – design tokens and shared classes
 
-## Still to confirm / wire up
+Prices are always recomputed on the server when an order is placed, so the cart can't change what a customer pays.
 
-Search for `TODO` in the source. Main items: real product weights (used for shipping), recommended magnet count, Place Board weight, real customer photos, PromptPay QR generation, and a backend for orders, slips and tracking (everything currently runs on demo data in memory).
+## Still to confirm
+
+Real product weights (used for shipping), the recommended magnet count, Place Board's weight, real customer photos, and the TH/EN language toggle (not built yet).
