@@ -1,5 +1,8 @@
+'use client';
+
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { SearchIcon } from '../components/Icons';
 import { ORDER_STATUSES, StatusPill, type OrderStatus } from '../components/StatusPill';
 import { baht } from '../data/format';
@@ -38,15 +41,15 @@ export function AdminPage() {
     <div className="admin">
       <header className="on-dark">
         <div className="admin__bar">
-          <img src={img.logo} alt="" width={36} height={36} style={{ borderRadius: '50%' }} />
+          <Image src={img.logo} alt="" width={36} height={36} style={{ borderRadius: '50%' }} />
           <span className="num-display" style={{ fontWeight: 500, fontSize: 18 }}>Buildabond</span>
           <span style={{ fontSize: 13, color: 'var(--on-dark-3)' }}>หลังบ้าน</span>
           <nav aria-label="เมนูหลังบ้าน" className="admin__nav">
-            <Link to="/admin" aria-current="page">ออร์เดอร์</Link>
+            <Link href="/admin" aria-current="page">ออร์เดอร์</Link>
             {/* TODO: sections not designed yet */}
-            <Link to="/admin">สินค้า</Link>
-            <Link to="/admin">คำขอสั่งทำ</Link>
-            <Link to="/admin">ลูกค้าธุรกิจ</Link>
+            <Link href="/admin">สินค้า</Link>
+            <Link href="/admin">คำขอสั่งทำ</Link>
+            <Link href="/admin">ลูกค้าธุรกิจ</Link>
           </nav>
           <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--on-dark-3)' }}>แอดมิน</span>
         </div>

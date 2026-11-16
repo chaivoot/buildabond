@@ -1,5 +1,8 @@
+'use client';
+
+import Image from 'next/image';
 import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
 import { SHIPPING_TIERS } from '../data/shipping';
@@ -58,7 +61,7 @@ export function CartDrawer() {
           {items.length === 0 && <li className="cart-drawer__empty">ตะกร้ายังว่าง</li>}
           {items.map((it) => (
             <li key={it.id} className="cart-drawer__item">
-              <img src={it.img} alt="" />
+              <Image src={it.img} alt="" sizes="76px" />
               <div className="cart-drawer__info">
                 <span className="cart-drawer__name">{it.name}</span>
                 <span className="small">{it.opt}</span>
@@ -76,10 +79,10 @@ export function CartDrawer() {
           <div className="sum-row muted" style={{ fontSize: 14 }}><span>ยอดสินค้า</span><span>{baht(subtotal)}</span></div>
           <div className="sum-row muted" style={{ fontSize: 14 }}><span>ค่าส่ง</span><span>{baht(shipping)}</span></div>
           <div className="sum-row cart-drawer__total"><span>รวม</span><span>{baht(total)}</span></div>
-          <Link to="/checkout" className="btn btn--primary btn--block" style={{ marginTop: 6, height: 52 }} onClick={closeDrawer}>
+          <Link href="/checkout" className="btn btn--primary btn--block" style={{ marginTop: 6, height: 52 }} onClick={closeDrawer}>
             ไปชำระเงิน
           </Link>
-          <Link to="/cart" className="btn btn--ghost btn--block btn--sm" style={{ fontSize: 15 }} onClick={closeDrawer}>
+          <Link href="/cart" className="btn btn--ghost btn--block btn--sm" style={{ fontSize: 15 }} onClick={closeDrawer}>
             ดูตะกร้าแบบเต็ม
           </Link>
         </div>

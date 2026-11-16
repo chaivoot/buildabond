@@ -1,3 +1,4 @@
+import type { StaticImageData } from 'next/image';
 import { img } from './images';
 
 export type CategoryId = 'sb' | 'ip' | 'tug';
@@ -49,7 +50,7 @@ export interface Product {
    * TODO: confirm real weights — only Rabbit Dummy (0.5 kg) is known.
    */
   kg: number;
-  img: string;
+  img?: StaticImageData;
   /** Lifestyle photos fill the tile; cut-out product shots are contained. */
   cover?: boolean;
   badge?: string;
@@ -72,7 +73,7 @@ export const PRODUCTS: Product[] = [
   { slug: 'narrow-target', cat: 'sb', name: 'Narrow Target', th: 'ฐานยืน 25 / 35 / 45 cm', priceLabel: 'เริ่ม ฿390', price: 390, kg: 0.6, img: img.narrowTarget, colors: RUBBER_COLORS, colorsLabel: 'สีผิวยาง', swatchesLabel: 'สีผิวยาง ฟ้า ส้ม ผสม' },
   { slug: 'jump-box', cat: 'sb', name: 'Jump Box', th: 'กล่องกระโดด สั่งทำตามขนาด', priceLabel: 'เริ่ม ฿2,590', price: 2590, kg: 6, img: img.jumpBox, cover: true, badge: 'สั่งทำ', custom: true },
   { slug: 'platform', cat: 'sb', name: 'Platform', th: 'ฐานรอง สั่งทำตามขนาด', priceLabel: 'เริ่ม ฿2,990', price: 2990, kg: 6, img: img.magnets, cover: true, badge: 'สั่งทำ', custom: true },
-  { slug: 'wobbler', cat: 'sb', name: 'Wobbler', th: 'แท่นโยก 4.5 / 9.5 cm', priceLabel: 'แจ้งเตือนเมื่อพร้อมขาย', price: 0, kg: 0, img: '', comingSoon: true, badge: 'Coming soon' },
+  { slug: 'wobbler', cat: 'sb', name: 'Wobbler', th: 'แท่นโยก 4.5 / 9.5 cm', priceLabel: 'แจ้งเตือนเมื่อพร้อมขาย', price: 0, kg: 0, comingSoon: true, badge: 'Coming soon' },
   { slug: 'flirt-pole', cat: 'ip', name: 'Flirt Pole', th: 'ไซส์ S / M เหยื่อ 3 สี', priceLabel: 'เริ่ม ฿790', price: 790, kg: 0.6, img: img.flirtPole, cover: true, colors: LURE_COLORS, colorsLabel: 'สีเหยื่อ', swatchesLabel: 'สีเหยื่อ เหลือง ฟ้า ชมพู' },
   { slug: 'bungee-pocket', cat: 'tug', name: 'Bungee Pocket', th: 'ขนแกะ + ลูกบอลบันจี้ พกพาสะดวก', priceLabel: '฿1,550', price: 1550, kg: 0.4, img: img.bungeePocket },
   { slug: 'sheepskin-bungee', cat: 'tug', name: 'Sheepskin Bungee / Ball', th: 'ยาว 58 / 62 cm สำหรับหมาที่ชอบดึงแรง', priceLabel: '฿1,450 / ฿1,550', price: 1450, kg: 0.4, img: img.sheepskinBungee },

@@ -1,3 +1,7 @@
+'use client';
+
+import Image from 'next/image';
+import { SIZES } from '../data/sizes';
 import { useState } from 'react';
 import { CheckIcon, GymIcon, ShopIcon, TrainerIcon, VetIcon } from '../components/Icons';
 import { SiteHeader } from '../components/SiteHeader';
@@ -39,7 +43,7 @@ export function BusinessPage() {
             <a href="#contact" className="btn btn--primary">ขอใบเสนอราคา</a>
             <a href="#dropship" className="btn btn--outline" style={{ padding: '0 24px' }}>ดูระบบ Dropship</a>
           </div>
-          <img src={img.dogsOnBoxes} alt="หมาสองตัวยืนบนอุปกรณ์ Buildabond ในสนามหญ้า" className="photo" style={{ marginTop: 32, aspectRatio: '16 / 10', maxHeight: 600 }} />
+          <Image priority sizes={SIZES.full} src={img.dogsOnBoxes} alt="หมาสองตัวยืนบนอุปกรณ์ Buildabond ในสนามหญ้า" className="photo" style={{ marginTop: 32, aspectRatio: '16 / 10', maxHeight: 600 }} />
         </section>
 
         <section className="container section">

@@ -1,10 +1,11 @@
+import type { StaticImageData } from 'next/image';
 import { img } from './images';
 
 export interface ProductDetail {
   /** "แผ่นกระดาน 80 × 33 × 1.5 cm · รหัส 0101" */
   subtitle: string;
-  gallery: { src: string; alt: string }[];
-  story?: { title: string; body: string; img: string; alt: string };
+  gallery: { src: StaticImageData; alt: string }[];
+  story?: { title: string; body: string; img: StaticImageData; alt: string };
   moves?: { tag: string; tone: string; title: string; body: string }[];
   specs?: [string, string][];
   related?: string[];

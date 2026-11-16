@@ -1,4 +1,7 @@
-import { Link } from 'react-router-dom';
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
 import { MiniProductCard } from '../components/ProductTile';
 import { QtyStepper } from '../components/QtyStepper';
 import { SiteHeader } from '../components/SiteHeader';
@@ -15,14 +18,14 @@ export function CartPage() {
 
   return (
     <>
-      <SiteHeader variant="simple" sticky={false} right={<Link to="/shop" style={{ fontSize: 14, color: 'var(--ink)' }}>เลือกซื้อต่อ</Link>} />
+      <SiteHeader variant="simple" sticky={false} right={<Link href="/shop" style={{ fontSize: 14, color: 'var(--ink)' }}>เลือกซื้อต่อ</Link>} />
       <main className="container" style={{ paddingTop: 32, paddingBottom: 80 }}>
         <h1 className="display" style={{ fontSize: 'clamp(38px, 8vw, 64px)', letterSpacing: 0 }}>ตะกร้า</h1>
         <div className="split" style={{ marginTop: 24 }}>
           <ul className="split__main cart-list">
             {items.map((it) => (
               <li key={it.id} className="cart-line">
-                <img src={it.img} alt="" />
+                <Image src={it.img} alt="" sizes="96px" />
                 <div className="cart-line__info">
                   <div className="sum-row">
                     <span className="cart-line__name">{it.name}</span>
@@ -40,7 +43,7 @@ export function CartPage() {
             ))}
             {items.length === 0 && (
               <li style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-2)' }}>
-                ตะกร้ายังว่าง <Link to="/shop">เลือกสินค้า</Link>
+                ตะกร้ายังว่าง <Link href="/shop">เลือกสินค้า</Link>
               </li>
             )}
           </ul>
@@ -67,7 +70,7 @@ export function CartPage() {
               <span className="num-display" style={{ fontSize: 30 }}>{baht(total)}</span>
             </div>
             {items.length > 0 ? (
-              <Link to="/checkout" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18 }}>ไปชำระเงิน</Link>
+              <Link href="/checkout" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18 }}>ไปชำระเงิน</Link>
             ) : (
               <button type="button" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18, opacity: 0.4 }} disabled>ไปชำระเงิน</button>
             )}

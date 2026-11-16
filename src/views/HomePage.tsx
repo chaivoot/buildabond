@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import Image from 'next/image';
+import { SIZES } from '../data/sizes';
+import Link from 'next/link';
 import { BrainIcon, HeartIcon, StrengthIcon } from '../components/Icons';
 import { SiteFooter } from '../components/SiteFooter';
 import { SiteHeader } from '../components/SiteHeader';
@@ -49,12 +51,12 @@ export function HomePage() {
             อุปกรณ์ฟิตเนสและของเล่นฝึกสุนัขจากไทย ชวนคนกับหมาออกมาขยับ เรียนรู้ และเล่นด้วยกันมากขึ้น
           </p>
           <div className="home-hero__ctas">
-            <Link to="/shop" className="btn btn--primary" style={{ padding: '0 28px' }}>เลือกซื้ออุปกรณ์</Link>
-            <Link to="/custom" className="btn btn--outline">สั่งทำขนาดพิเศษ</Link>
+            <Link href="/shop" className="btn btn--primary" style={{ padding: '0 28px' }}>เลือกซื้ออุปกรณ์</Link>
+            <Link href="/custom" className="btn btn--outline">สั่งทำขนาดพิเศษ</Link>
           </div>
         </section>
         <div className="container container--wide">
-          <img src={img.heroSet} alt="Oct Box, Target Box และ Place Board วางบนสนามหญ้าตอนแดดเย็น" className="photo home-hero__img" />
+          <Image priority sizes="(min-width: 1360px) 1336px, 100vw" src={img.heroSet} alt="Oct Box, Target Box และ Place Board วางบนสนามหญ้าตอนแดดเย็น" className="photo home-hero__img" />
         </div>
 
         <section className="container home-pad" style={{ paddingTop: 88, paddingBottom: 40 }}>
@@ -78,13 +80,13 @@ export function HomePage() {
           <h2 className="title" style={{ marginBottom: 28 }}>เลือกตามแบบการเล่น</h2>
           <div className="auto-grid" style={css({ '--min': '280px' })}>
             {CATEGORY_CARDS.map((c) => (
-              <Link key={c.title} to={c.to} className="cat-card" style={{ background: c.bg }}>
+              <Link key={c.title} href={c.to} className="cat-card" style={{ background: c.bg }}>
                 {c.cutout ? (
                   <div className="cat-card__media cat-card__media--cutout">
-                    <img src={c.img} alt={c.alt} />
+                    <Image src={c.img} alt={c.alt} sizes={SIZES.third} />
                   </div>
                 ) : (
-                  <img src={c.img} alt={c.alt} className="cat-card__media" />
+                  <Image src={c.img} alt={c.alt} className="cat-card__media" sizes={SIZES.third} />
                 )}
                 <div className="cat-card__body">
                   <h3>{c.title}</h3>
@@ -105,7 +107,7 @@ export function HomePage() {
             <p className="lead" style={{ marginTop: 18, maxWidth: 620 }}>
               ไม้ยางพาราเกรดส่งออก ปิดผิวด้วยยาง EPDM เกรดเดียวกับพื้นสนามเด็กเล่น ผิวมีลายช่วยยึดเกาะและลดการลื่นไถล
             </p>
-            <img src={img.epdmCloseup} alt="ผิวยาง EPDM สีฟ้าและส้มบนกล่องไม้ยางพารา ระยะใกล้" className="photo" style={{ marginTop: 36, aspectRatio: '4 / 3', maxHeight: 640, borderRadius: 20 }} />
+            <Image sizes={SIZES.full} src={img.epdmCloseup} alt="ผิวยาง EPDM สีฟ้าและส้มบนกล่องไม้ยางพารา ระยะใกล้" className="photo" style={{ marginTop: 36, aspectRatio: '4 / 3', maxHeight: 640, borderRadius: 20 }} />
             <div className="auto-grid" style={css({ '--min': '220px', gap: '28px 32px', marginTop: 40 })}>
               {STATS.map((s) => (
                 <div key={s.body} className="stat">
@@ -123,8 +125,8 @@ export function HomePage() {
           <ol className="auto-grid steps" style={css({ '--min': '300px', gap: '36px 20px', marginTop: 40 })}>
             <li>
               <div className="steps__media" style={{ gap: 8, padding: 20 }}>
-                <img src={img.targetBox} alt="Target Box สูง 10 cm" className="cutout" style={{ width: '48%' }} />
-                <img src={img.slantBox} alt="Slant Box 20 องศา" className="cutout" style={{ width: '48%' }} />
+                <Image sizes="180px" src={img.targetBox} alt="Target Box สูง 10 cm" className="cutout" style={{ width: '48%' }} />
+                <Image sizes="180px" src={img.slantBox} alt="Slant Box 20 องศา" className="cutout" style={{ width: '48%' }} />
               </div>
               <p className="steps__n">ขั้นที่ 1</p>
               <h3>เลือกฐาน</h3>
@@ -132,7 +134,7 @@ export function HomePage() {
             </li>
             <li>
               <div className="steps__media">
-                <img src={img.magnets} alt="ด้านล่างแผ่นกระดานและกล่อง มีแม่เหล็กฝังอยู่" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <Image sizes={SIZES.third} src={img.magnets} alt="ด้านล่างแผ่นกระดานและกล่อง มีแม่เหล็กฝังอยู่" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <p className="steps__n">ขั้นที่ 2</p>
               <h3>วางแผ่นกระดาน</h3>
@@ -167,7 +169,7 @@ export function HomePage() {
 
         <section style={{ background: 'var(--sand)' }}>
           <div className="container home-pad split split--center" style={{ paddingBlock: 88 }}>
-            <img src={img.cockerOctBox} alt="ค็อกเกอร์สแปเนียลยืนบน Oct Box กลางแดด" className="photo" style={{ aspectRatio: '4 / 3', borderRadius: 20 }} />
+            <Image sizes={SIZES.half} src={img.cockerOctBox} alt="ค็อกเกอร์สแปเนียลยืนบน Oct Box กลางแดด" className="photo" style={{ aspectRatio: '4 / 3', borderRadius: 20 }} />
             <div>
               <p className="eyebrow">เรื่องของเรา</p>
               <h2 className="title" style={{ lineHeight: 1.18 }}>ทดสอบกับหมาจริง ก่อนถึงบ้านคุณ</h2>
@@ -189,7 +191,7 @@ export function HomePage() {
           </div>
           <div className="auto-fill" style={css({ '--gap': '8px', marginTop: 24 })}>
             {UGC.map((src, i) => (
-              <img key={i} src={src} alt="ภาพลูกค้า (ตัวอย่าง)" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 14 }} />
+              <Image key={i} sizes="(min-width: 900px) 200px, 50vw" src={src} alt="ภาพลูกค้า (ตัวอย่าง)" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 14 }} />
             ))}
           </div>
         </section>

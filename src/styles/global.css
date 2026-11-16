@@ -1,7 +1,7 @@
 /* ---------- Tokens (from the Buildabond design) ---------- */
 :root {
-  --font-display: 'Anuphan', sans-serif;
-  --font-body: 'IBM Plex Sans Thai', sans-serif;
+  --font-display: var(--font-anuphan), 'Anuphan', sans-serif;
+  --font-body: var(--font-plex-thai), 'IBM Plex Sans Thai', sans-serif;
 
   --ink: #2e2118;
   --ink-2: #5b4a3d;
@@ -52,7 +52,7 @@ body {
   background: var(--white);
   -webkit-font-smoothing: antialiased;
 }
-img { display: block; max-width: 100%; }
+img { display: block; max-width: 100%; height: auto; }
 a { color: var(--link); }
 a:hover { color: var(--link-hover); }
 button, input, select, textarea { font: inherit; color: inherit; }

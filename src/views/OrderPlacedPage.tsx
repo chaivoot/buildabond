@@ -1,5 +1,7 @@
+'use client';
+
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { DocIcon, DownloadIcon, QrIcon, UploadIcon } from '../components/Icons';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
@@ -89,8 +91,8 @@ export function OrderPlacedPage() {
         </section>
 
         <div className="stack" style={{ marginTop: 28 }}>
-          <Link to={`/track?order=${encodeURIComponent(order.id)}`} className="btn btn--primary btn--lg btn--block">ติดตามสถานะออร์เดอร์</Link>
-          <Link to="/" className="btn btn--ghost btn--block">กลับหน้าแรก</Link>
+          <Link href={`/track?order=${encodeURIComponent(order.id)}`} className="btn btn--primary btn--lg btn--block">ติดตามสถานะออร์เดอร์</Link>
+          <Link href="/" className="btn btn--ghost btn--block">กลับหน้าแรก</Link>
         </div>
         <p className="small" style={{ marginTop: 18, lineHeight: 1.7 }}>
           เก็บเลขออร์เดอร์ไว้ ใช้คู่กับเบอร์โทร {order.phone || 'ที่ใช้สั่งซื้อ'} เพื่อเช็กสถานะได้ทุกเมื่อ

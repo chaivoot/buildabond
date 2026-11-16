@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { css } from '../data/style';
 
 export function SiteFooter() {
@@ -13,16 +13,16 @@ export function SiteFooter() {
         <div className="auto-grid footer-cols" style={css({ '--min': '150px', '--gap': '28px', marginTop: 48, fontSize: 15 })}>
           <div className="footer-col">
             <p>สินค้า</p>
-            <Link to="/shop?cat=sb">Strength &amp; Balance</Link>
-            <Link to="/shop?cat=ip">Interactive Play</Link>
-            <Link to="/shop?cat=tug">Tug Toys</Link>
-            <Link to="/custom">สั่งทำขนาดพิเศษ</Link>
+            <Link href="/shop?cat=sb">Strength &amp; Balance</Link>
+            <Link href="/shop?cat=ip">Interactive Play</Link>
+            <Link href="/shop?cat=tug">Tug Toys</Link>
+            <Link href="/custom">สั่งทำขนาดพิเศษ</Link>
           </div>
           <div className="footer-col">
             <p>ช่วยเหลือ</p>
-            <Link to="/track">ติดตามออร์เดอร์</Link>
-            <Link to="/products/place-board#faq">การจัดส่ง</Link>
-            <Link to="/business">สำหรับธุรกิจ</Link>
+            <Link href="/track">ติดตามออร์เดอร์</Link>
+            <Link href="/products/place-board#faq">การจัดส่ง</Link>
+            <Link href="/business">สำหรับธุรกิจ</Link>
           </div>
           <div className="footer-col">
             <p>ติดต่อเรา</p>

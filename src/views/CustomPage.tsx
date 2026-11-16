@@ -1,3 +1,7 @@
+'use client';
+
+import Image from 'next/image';
+import { SIZES } from '../data/sizes';
 import { useState } from 'react';
 import { ColorPicker } from '../components/ColorPicker';
 import { SiteHeader } from '../components/SiteHeader';
@@ -64,7 +68,7 @@ export function CustomPage() {
           <p className="eyebrow">Customised Size</p>
           <h1 className="display" style={{ letterSpacing: 0 }}>สั่งทำกล่องและฐานรอง ตามขนาดที่ต้องการ</h1>
           <p className="lead" style={{ marginTop: 16, maxWidth: 580 }}>ออกแบบกิจกรรมได้หลากหลายขึ้น กรอกกว้าง ยาว สูง แล้วระบบจะบอกรุ่นและราคาให้ทันที</p>
-          <img src={img.jumpBox} alt="กล่องกระโดดสั่งทำ ผิวยางสีดำ มีขั้นบันไดด้านข้าง" className="photo" style={{ marginTop: 28, aspectRatio: '16 / 10', maxHeight: 560 }} />
+          <Image priority sizes={SIZES.full} src={img.jumpBox} alt="กล่องกระโดดสั่งทำ ผิวยางสีดำ มีขั้นบันไดด้านข้าง" className="photo" style={{ marginTop: 28, aspectRatio: '16 / 10', maxHeight: 560 }} />
         </section>
 
         <section className="container split" style={{ paddingTop: 40 }}>

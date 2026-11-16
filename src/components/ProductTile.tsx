@@ -1,13 +1,16 @@
-import { Link } from 'react-router-dom';
+import Image from 'next/image';
+import { SIZES } from '../data/sizes';
+import Link from 'next/link';
 import { categoryLabel, productHref, type Product } from '../data/products';
 import './ProductTile.css';
 
 export function ProductTile({ p }: { p: Product }) {
   return (
-    <Link to={productHref(p)} className="product-tile">
+    <Link href={productHref(p)} className="product-tile">
       <div className="product-tile__media tile-bg">
         {p.img && (
-          <img
+          <Image
+            sizes={SIZES.tile}
             src={p.img}
             alt={p.name}
             className={p.cover ? 'product-tile__img--cover' : 'product-tile__img--cutout cutout'}
@@ -36,9 +39,9 @@ export function ProductTile({ p }: { p: Product }) {
 /** Compact card used in "ใช้ร่วมกันได้" / cross-sell rows. */
 export function MiniProductCard({ p }: { p: Product }) {
   return (
-    <Link to={productHref(p)} className="mini-card">
+    <Link href={productHref(p)} className="mini-card">
       <div className="tile-bg mini-card__media">
-        <img src={p.img} alt={p.name} className="cutout" />
+        <Image src={p.img!} alt={p.name} className="cutout" sizes="200px" />
       </div>
       <span className="mini-card__name">{p.name}</span>
       <span className="mini-card__price">{p.priceLabel}</span>

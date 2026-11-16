@@ -1,5 +1,10 @@
+'use client';
+
+import Image from 'next/image';
+import { SIZES } from '../data/sizes';
 import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ProductTile } from '../components/ProductTile';
 import { SiteHeader } from '../components/SiteHeader';
 import { img } from '../data/images';
@@ -8,10 +13,8 @@ import './ShopPage.css';
 
 type Sort = 'featured' | 'asc' | 'desc';
 
-export function ShopPage() {
-  const [params, setParams] = useSearchParams();
-  const raw = params.get('cat');
-  const cat: CategoryId | 'all' = CATEGORIES.some((c) => c.id === raw) ? (raw as CategoryId) : 'all';
+export function ShopPage({ cat }: { cat: CategoryId | 'all' }) {
+  const router = useRouter();
   const [sort, setSort] = useState<Sort>('featured');
 
   const list = useMemo(() => {
@@ -42,7 +45,7 @@ export function ShopPage() {
               type="button"
               className="chip"
               aria-pressed={c.id === cat}
-              onClick={() => setParams(c.id === 'all' ? {} : { cat: c.id }, { replace: true })}
+              onClick={() => router.replace(c.id === 'all' ? '/shop' : `/shop?cat=${c.id}`, { scroll: false })}
             >
               {c.label}
             </button>
@@ -67,8 +70,8 @@ export function ShopPage() {
           ))}
         </div>
 
-        <Link to="/custom" className="on-dark shop-custom">
-          <img src={img.jumpBox} alt="กล่องกระโดดสั่งทำ ปิดผิวยางสีดำ" />
+        <Link href="/custom" className="on-dark shop-custom">
+          <Image src={img.jumpBox} alt="กล่องกระโดดสั่งทำ ปิดผิวยางสีดำ" sizes={SIZES.half} />
           <div className="shop-custom__body">
             <p className="num-display" style={{ fontWeight: 300, fontSize: 30, lineHeight: 1.2 }}>ต้องการขนาดพิเศษ?</p>
             <p style={{ marginTop: 10, fontSize: 15, lineHeight: 1.7, color: 'var(--on-dark-2)' }}>

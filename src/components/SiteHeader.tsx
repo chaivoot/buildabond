@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { BagIcon, CloseIcon, MenuIcon } from './Icons';
 import { Logo } from './Logo';
@@ -68,7 +70,7 @@ export function SiteHeader({ variant = 'store', showNav = false, sticky = true, 
       {variant === 'store' && navVisible && (
         <nav aria-label="หมวดสินค้า" className="container site-header__nav">
           {NAV.map((n) => (
-            <Link key={n.label} to={n.to} onClick={() => setMenuOpen(false)}>
+            <Link key={n.label} href={n.to} onClick={() => setMenuOpen(false)}>
               {n.label}
             </Link>
           ))}

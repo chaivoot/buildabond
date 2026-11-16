@@ -1,3 +1,6 @@
+'use client';
+
+import type { StaticImageData } from 'next/image';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { img } from '../data/images';
 import { shippingFee, shippingTier } from '../data/shipping';
@@ -10,7 +13,7 @@ export interface CartItem {
   status: string;
   unitPrice: number;
   kg: number;
-  img: string;
+  img: StaticImageData;
   qty: number;
 }
 

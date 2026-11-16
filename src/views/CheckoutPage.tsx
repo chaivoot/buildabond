@@ -1,5 +1,9 @@
-import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+'use client';
+
+import Image from 'next/image';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
@@ -12,20 +16,27 @@ const STEPS = ['ที่อยู่จัดส่ง', 'สรุปออร
 
 export function CheckoutPage() {
   const { items, count, subtotal, kg, shipping, total, placeOrder } = useCart();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [phone, setPhone] = useState('');
+  const [placing, setPlacing] = useState(false);
+  const empty = items.length === 0;
 
-  if (items.length === 0) return <Navigate to="/cart" replace />;
+  useEffect(() => {
+    if (empty && !placing) router.replace('/cart');
+  }, [empty, placing, router]);
+
+  if (empty) return null;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    setPlacing(true);
     placeOrder(phone);
-    navigate('/order-placed');
+    router.push('/order-placed');
   };
 
   return (
     <>
-      <SiteHeader variant="simple" sticky={false} right={<Link to="/cart" style={{ fontSize: 14, color: 'var(--ink)' }}>กลับไปตะกร้า</Link>} />
+      <SiteHeader variant="simple" sticky={false} right={<Link href="/cart" style={{ fontSize: 14, color: 'var(--ink)' }}>กลับไปตะกร้า</Link>} />
       <main className="container" style={{ paddingTop: 28, paddingBottom: 80 }}>
         <h1 className="display" style={{ fontSize: 'clamp(36px, 8vw, 56px)', lineHeight: 1.1, letterSpacing: 0 }}>ชำระเงิน</h1>
         <ol aria-label="ขั้นตอน" className="checkout-steps">
@@ -80,7 +91,7 @@ export function CheckoutPage() {
               <ul className="checkout-items">
                 {items.map((it) => (
                   <li key={it.id}>
-                    <img src={it.img} alt="" />
+                    <Image src={it.img} alt="" sizes="54px" />
                     <span style={{ flex: 1, fontSize: 14, lineHeight: 1.45 }}>
                       {it.name}{it.qty > 1 ? ` × ${it.qty}` : ''}
                       <br />

@@ -1,5 +1,9 @@
+'use client';
+
+import Image from 'next/image';
+import { SIZES } from '../data/sizes';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import Link from 'next/link';
 import { ColorPicker } from '../components/ColorPicker';
 import { CheckIcon, ClockIcon, TruckIcon } from '../components/Icons';
 import { MiniProductCard } from '../components/ProductTile';
@@ -11,17 +15,10 @@ import { img } from '../data/images';
 import { PRODUCT_DETAILS, SHARED_FAQ } from '../data/productDetails';
 import { categoryLabel, findProduct, MAGNET_PRICE, MAX_MAGNETS } from '../data/products';
 import { css } from '../data/style';
-import { NotFoundPage } from './NotFoundPage';
 import './ProductPage.css';
 
-export function ProductPage() {
-  const { slug } = useParams();
-  const product = findProduct(slug);
-  if (!product || product.comingSoon || product.custom) return <NotFoundPage />;
-  return <ProductView key={product.slug} slug={product.slug} />;
-}
-
-function ProductView({ slug }: { slug: string }) {
+/** The route (`app/products/[slug]/page.tsx`) only renders this for sellable products. */
+export function ProductPage({ slug }: { slug: string }) {
   const p = findProduct(slug)!;
   const d = PRODUCT_DETAILS[slug];
   const { add, openDrawer } = useCart();
@@ -31,7 +28,7 @@ function ProductView({ slug }: { slug: string }) {
   // TODO: wire to real stock data; the design supports "พร้อมส่ง" and "พรีออเดอร์".
   const inStock = true;
 
-  const gallery = d?.gallery ?? [{ src: p.img, alt: p.name }];
+  const gallery = d?.gallery ?? [{ src: p.img!, alt: p.name }];
   const total = p.price + (p.magnets ? MAGNET_PRICE * magnets : 0);
   const colorName = p.colors?.[color].name;
   const leadText = inStock ? 'สินค้าประกอบแล้ว ทำผิวยางสีที่เลือก 3-5 วันก่อนจัดส่ง' : 'ผลิตตามสั่ง ใช้เวลาประมาณ 28-35 วัน';
@@ -45,7 +42,7 @@ function ProductView({ slug }: { slug: string }) {
       status: inStock ? (p.colors === undefined ? 'พร้อมส่ง' : 'พร้อมส่ง · ทำผิวยาง 3-5 วัน') : 'พรีออเดอร์ · 28-35 วัน',
       unitPrice: total,
       kg: p.kg,
-      img: p.img,
+      img: p.img!,
     });
     openDrawer();
   };
@@ -65,18 +62,18 @@ function ProductView({ slug }: { slug: string }) {
 
       <main>
         <nav aria-label="breadcrumb" className="container" style={{ paddingTop: 14, fontSize: 13, color: 'var(--ink-3)' }}>
-          <Link to="/shop" style={{ color: 'var(--ink-2)' }}>สินค้าทั้งหมด</Link> /{' '}
-          <Link to={`/shop?cat=${p.cat}`} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>{categoryLabel(p.cat)}</Link>
+          <Link href="/shop" style={{ color: 'var(--ink-2)' }}>สินค้าทั้งหมด</Link> /{' '}
+          <Link href={`/shop?cat=${p.cat}`} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>{categoryLabel(p.cat)}</Link>
         </nav>
 
         <section className="container split" style={{ paddingTop: 12, gap: '28px 48px' }}>
           <div style={{ flex: '1 1 420px' }}>
-            <img src={gallery[imgIdx].src} alt={gallery[imgIdx].alt} className="photo pdp-main-img" />
+            <Image priority sizes={SIZES.half} src={gallery[imgIdx].src} alt={gallery[imgIdx].alt} className="photo pdp-main-img" />
             {gallery.length > 1 && (
               <div className="pdp-thumbs">
                 {gallery.map((g, i) => (
                   <button key={i} type="button" aria-label={`ดูรูปที่ ${i + 1}`} aria-pressed={i === imgIdx} onClick={() => setImgIdx(i)}>
-                    <img src={g.src} alt="" />
+                    <Image src={g.src} alt="" sizes="140px" />
                   </button>
                 ))}
               </div>
@@ -122,7 +119,7 @@ function ProductView({ slug }: { slug: string }) {
           <section className="container section--lg" style={{ textAlign: 'center' }}>
             <h2 className="display" style={{ margin: '0 auto', maxWidth: 760, fontSize: 'clamp(34px, 7vw, 64px)', lineHeight: 1.12, letterSpacing: 0 }}>{d.story.title}</h2>
             <p className="lead" style={{ margin: '18px auto 0', maxWidth: 560 }}>{d.story.body}</p>
-            <img src={d.story.img} alt={d.story.alt} className="photo" style={{ marginTop: 36, aspectRatio: '4 / 3', maxHeight: 640, borderRadius: 24 }} />
+            <Image sizes={SIZES.full} src={d.story.img} alt={d.story.alt} className="photo" style={{ marginTop: 36, aspectRatio: '4 / 3', maxHeight: 640, borderRadius: 24 }} />
           </section>
         )}
 
@@ -133,13 +130,13 @@ function ProductView({ slug }: { slug: string }) {
               <h2 className="title">ยางเกรดสนามเด็กเล่น บนไม้ยางพาราส่งออก</h2>
               <p className="lead" style={{ marginTop: 16, fontSize: 16 }}>ผิว EPDM มีลายช่วยยึดเกาะ รับแรงกระแทกได้ถึง 200 กก. โครงสร้างออกแบบโดยสถาปนิก</p>
             </div>
-            <img src={img.epdmCloseup} alt="ผิวยาง EPDM ระยะใกล้" className="photo" style={{ aspectRatio: '4 / 3' }} />
+            <Image sizes={SIZES.half} src={img.epdmCloseup} alt="ผิวยาง EPDM ระยะใกล้" className="photo" style={{ aspectRatio: '4 / 3' }} />
           </section>
         )}
 
         {p.magnets && (
           <section className="container section--lg split split--center" style={{ gap: '28px 48px', flexWrap: 'wrap-reverse' }}>
-            <img src={img.magnets} alt="แม่เหล็กฝังใต้แผ่นกระดานและบนกล่อง" className="photo" style={{ aspectRatio: '1' }} />
+            <Image sizes={SIZES.half} src={img.magnets} alt="แม่เหล็กฝังใต้แผ่นกระดานและบนกล่อง" className="photo" style={{ aspectRatio: '1' }} />
             <div>
               <p className="eyebrow" style={{ marginBottom: 10 }}>ต่อเป็นชุด</p>
               <h2 className="title">เพิ่มแม่เหล็ก แล้วต่อเป็นสะพานหรือทางลาด</h2>

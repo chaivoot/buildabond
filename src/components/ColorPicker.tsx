@@ -1,3 +1,5 @@
+'use client';
+
 import type { ColorOption } from '../data/products';
 
 interface Props {

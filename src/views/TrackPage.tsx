@@ -1,5 +1,7 @@
+'use client';
+
 import { useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+
 import { SiteHeader } from '../components/SiteHeader';
 import { ORDER_STATUSES, StatusPill } from '../components/StatusPill';
 import { baht } from '../data/format';
@@ -23,9 +25,8 @@ function lookup(id: string, phone: string): AdminOrder | null {
   return DEMO_ORDERS.find((o) => o.id === id.trim().toUpperCase() && digits(o.phone) === digits(phone)) ?? null;
 }
 
-export function TrackPage() {
-  const [params] = useSearchParams();
-  const [id, setId] = useState(params.get('order') ?? 'BB-261116-0042');
+export function TrackPage({ initialOrder }: { initialOrder?: string }) {
+  const [id, setId] = useState(initialOrder ?? 'BB-261116-0042');
   const [phone, setPhone] = useState('081-234-5678');
   const [result, setResult] = useState<AdminOrder | null | undefined>(() => lookup(id, phone) ?? undefined);
 
