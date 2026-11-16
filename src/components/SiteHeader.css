@@ -1,0 +1,29 @@
+.site-header { background: var(--white); border-bottom: 1px solid var(--line-soft); }
+.site-header--sticky { position: sticky; top: 0; z-index: 30; }
+.site-header__bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 2px;
+  min-height: var(--header-h); padding-block: 6px;
+}
+.site-header__bar--store { padding-right: 8px; }
+.site-header__bar--store .logo { margin-right: auto; }
+.site-header__lang {
+  height: 44px; padding: 0 10px; border: 0; background: transparent; font-size: 14px; color: var(--ink);
+}
+.site-header__lang b { font-weight: 600; }
+.site-header__lang span { color: var(--ink-3); }
+.site-header__badge {
+  position: absolute; top: 5px; right: 3px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  background: var(--orange); color: var(--ink); font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.site-header__nav {
+  display: flex; gap: 24px; overflow-x: auto; white-space: nowrap; font-size: 14px;
+}
+.site-header__nav a { padding: 8px 0 12px; color: var(--ink); text-decoration: none; }
+.site-header__nav a:hover { text-decoration: underline; }
+
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.logo:hover { color: var(--ink); }
+.logo img { border-radius: 50%; }
+.logo span { font-family: var(--font-display); font-weight: 500; font-size: 19px; }
+.logo--dark, .logo--dark:hover { color: var(--on-dark); }
