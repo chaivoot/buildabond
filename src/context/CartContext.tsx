@@ -1,11 +1,11 @@
 'use client';
 
-import type { StaticImageData } from 'next/image';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { img } from '../data/images';
-import { shippingFee, shippingTier } from '../data/shipping';
+import type { CartLineInput } from '../lib/pricing';
+import { shippingFee, shippingTier } from '../lib/shipping';
+import { useShopSettings } from './SettingsContext';
 
-export interface CartItem {
+export interface CartItem extends CartLineInput {
   id: string;
   name: string;
   /** Selected options, e.g. "ฟ้า · แม่เหล็ก 4 ชิ้น" */
@@ -13,14 +13,7 @@ export interface CartItem {
   status: string;
   unitPrice: number;
   kg: number;
-  img: StaticImageData;
-  qty: number;
-}
-
-export interface PlacedOrder {
-  id: string;
-  total: number;
-  phone: string;
+  img: string;
 }
 
 interface CartState {
@@ -38,28 +31,26 @@ interface CartState {
   drawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
-  lastOrder: PlacedOrder | null;
-  placeOrder: (phone: string) => PlacedOrder;
 }
 
 const MAX_QTY = 9;
 
-/** Demo contents so the cart, checkout and order pages have something to show. */
+/** Demo contents so the cart and checkout have something to show. Prices match the seed catalogue. */
 const DEMO_CART: CartItem[] = [
-  { id: 'place-board|ฟ้า · แม่เหล็ก 4 ชิ้น', name: 'Place Board', opt: 'ฟ้า · แม่เหล็ก 4 ชิ้น', status: 'พร้อมส่ง · ทำผิวยาง 3-5 วัน', unitPrice: 2590, kg: 3.5, img: img.placeBoard, qty: 1 },
-  { id: 'target-box-10|ส้ม', name: 'Target Box 10 cm', opt: 'ส้ม', status: 'พร้อมส่ง · ทำผิวยาง 3-5 วัน', unitPrice: 1690, kg: 2.6, img: img.targetBox, qty: 1 },
-  { id: 'flirt-pole-m|เหยื่อชมพู', name: 'Flirt Pole M', opt: 'เหยื่อชมพู', status: 'พร้อมส่ง', unitPrice: 890, kg: 0.6, img: img.flirtPole, qty: 1 },
+  { id: 'place-board|ฟ้า · แม่เหล็ก 4 ชิ้น', slug: 'place-board', color: 0, magnets: 4, name: 'Place Board', opt: 'ฟ้า · แม่เหล็ก 4 ชิ้น', status: 'พร้อมส่ง · ทำผิวยาง 3-5 วัน', unitPrice: 2590, kg: 3.5, img: '/images/place-board.jpg', qty: 1 },
+  { id: 'target-box|ส้ม', slug: 'target-box', color: 1, name: 'Target Box', opt: 'ส้ม', status: 'พร้อมส่ง · ทำผิวยาง 3-5 วัน', unitPrice: 1590, kg: 2.6, img: '/images/target-box.jpg', qty: 1 },
+  { id: 'flirt-pole|ชมพู', slug: 'flirt-pole', color: 2, name: 'Flirt Pole', opt: 'ชมพู', status: 'พร้อมส่ง', unitPrice: 790, kg: 0.6, img: '/images/flirt-pole.jpg', qty: 1 },
 ];
 
 const CartContext = createContext<CartState | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const settings = useShopSettings();
   const [items, setItems] = useState<CartItem[]>(DEMO_CART);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [lastOrder, setLastOrder] = useState<PlacedOrder | null>(null);
 
   const add = useCallback<CartState['add']>((item, qty = 1) => {
-    const id = `${item.name}|${item.opt}`;
+    const id = `${item.slug}|${item.opt}`;
     setItems((prev) => {
       const hit = prev.find((i) => i.id === id);
       if (hit) return prev.map((i) => (i.id === id ? { ...i, qty: Math.min(MAX_QTY, i.qty + qty) } : i));
@@ -84,25 +75,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       count += i.qty;
     }
     kg = Math.round(kg * 10) / 10;
-    const shipping = shippingFee(kg);
-    const total = subtotal + shipping;
+    const shipping = shippingFee(kg, settings.shipping);
     return {
-      items, count, subtotal, kg, tier: shippingTier(kg), shipping, total,
+      items, count, subtotal, kg, tier: shippingTier(kg, settings.shipping), shipping, total: subtotal + shipping,
       add, setQty, remove, clear,
       drawerOpen,
       openDrawer: () => setDrawerOpen(true),
       closeDrawer: () => setDrawerOpen(false),
-      lastOrder,
-      placeOrder: (phone: string) => {
-        // TODO: replace with the real order API; the id format follows BB-YYMMDD-NNNN.
-        const d = new Date();
-        const ymd = [d.getFullYear() % 100, d.getMonth() + 1, d.getDate()].map((n) => String(n).padStart(2, '0')).join('');
-        const order = { id: `BB-${ymd}-0042`, total, phone };
-        setLastOrder(order);
-        return order;
-      },
     };
-  }, [items, drawerOpen, lastOrder, add, setQty, remove, clear]);
+  }, [items, drawerOpen, settings.shipping, add, setQty, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

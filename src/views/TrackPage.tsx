@@ -1,38 +1,39 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-
 import { SiteHeader } from '../components/SiteHeader';
-import { ORDER_STATUSES, StatusPill } from '../components/StatusPill';
+import { StatusPill } from '../components/StatusPill';
 import { baht } from '../data/format';
-import { DEMO_ORDERS, type AdminOrder } from '../data/orders';
-import { shippingFee } from '../data/shipping';
+import { thaiDateTime } from '../lib/dates';
+import { trackOrder, type TrackedOrder } from '../server/actions/shop';
 import './TrackPage.css';
 
-// TODO: timestamps should come from the order's status history.
+const FLOW = ['รอชำระ', 'ส่งสลิปแล้ว', 'ยืนยันแล้ว', 'จัดส่งแล้ว'] as const;
 const STEPS = [
-  { title: 'สั่งซื้อแล้ว', time: '16 พ.ย. 2569 · 22:51' },
-  { title: 'ส่งสลิปแล้ว', time: '16 พ.ย. 2569 · 23:02', wait: 'รอโอนและอัปโหลดสลิป' },
-  { title: 'ยืนยันการชำระแล้ว', time: '17 พ.ย. 2569 · 10:15', wait: 'ทีมกำลังตรวจสลิป', extra: 'กำลังทำผิวยางตามสีที่เลือก ประมาณ 3-5 วันก่อนจัดส่ง' },
-  { title: 'จัดส่งแล้ว', time: '20 พ.ย. 2569 · 15:40', wait: 'เลขพัสดุจะแสดงที่นี่' },
+  { title: 'สั่งซื้อแล้ว', at: (o: TrackedOrder) => o.createdAt },
+  { title: 'ส่งสลิปแล้ว', at: (o: TrackedOrder) => o.slipAt, wait: 'รอโอนและอัปโหลดสลิป' },
+  { title: 'ยืนยันการชำระแล้ว', at: (o: TrackedOrder) => o.confirmedAt, wait: 'ทีมกำลังตรวจสลิป', extra: 'กำลังทำผิวยางตามสีที่เลือก ประมาณ 3-5 วันก่อนจัดส่ง' },
+  { title: 'จัดส่งแล้ว', at: (o: TrackedOrder) => o.shippedAt, wait: 'เลขพัสดุจะแสดงที่นี่' },
 ];
 const HEADLINES = ['รอการโอนเงิน', 'รอตรวจสอบสลิป', 'ชำระเงินเรียบร้อย กำลังเตรียมของ', 'ของอยู่ระหว่างทาง'];
 
-const digits = (s: string) => s.replace(/\D/g, '');
-
-function lookup(id: string, phone: string): AdminOrder | null {
-  // TODO: call the order-status API.
-  return DEMO_ORDERS.find((o) => o.id === id.trim().toUpperCase() && digits(o.phone) === digits(phone)) ?? null;
+interface Props {
+  initialId: string;
+  initialPhone: string;
+  initialResult?: TrackedOrder;
 }
 
-export function TrackPage({ initialOrder }: { initialOrder?: string }) {
-  const [id, setId] = useState(initialOrder ?? 'BB-261116-0042');
-  const [phone, setPhone] = useState('081-234-5678');
-  const [result, setResult] = useState<AdminOrder | null | undefined>(() => lookup(id, phone) ?? undefined);
+export function TrackPage({ initialId, initialPhone, initialResult }: Props) {
+  const [id, setId] = useState(initialId);
+  const [phone, setPhone] = useState(initialPhone);
+  const [result, setResult] = useState<TrackedOrder | null | undefined>(initialResult);
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setResult(lookup(id, phone));
+    setLoading(true);
+    setResult(await trackOrder(id, phone).catch(() => null));
+    setLoading(false);
   };
 
   return (
@@ -45,7 +46,7 @@ export function TrackPage({ initialOrder }: { initialOrder?: string }) {
         <form onSubmit={submit} className="stack" style={{ marginTop: 22, gap: 14 }}>
           <label className="field">เลขออร์เดอร์<input className="input" style={{ height: 52, fontSize: 17, letterSpacing: '0.02em' }} type="text" required value={id} onChange={(e) => setId(e.target.value)} /></label>
           <label className="field">เบอร์โทร<input className="input" style={{ height: 52, fontSize: 17 }} type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
-          <button type="submit" className="btn btn--primary btn--lg">ดูสถานะ</button>
+          <button type="submit" className="btn btn--primary btn--lg" disabled={loading}>{loading ? 'กำลังค้นหา…' : 'ดูสถานะ'}</button>
         </form>
 
         <div aria-live="polite">
@@ -59,15 +60,23 @@ export function TrackPage({ initialOrder }: { initialOrder?: string }) {
   );
 }
 
-function OrderStatusCard({ order }: { order: AdminOrder }) {
-  const cur = ORDER_STATUSES.indexOf(order.status);
-  const total = order.items.reduce((a, [, p]) => a + p, 0) + shippingFee(order.kg);
+function OrderStatusCard({ order }: { order: TrackedOrder }) {
+  if (order.status === 'ยกเลิก') {
+    return (
+      <section className="panel" style={{ marginTop: 36 }}>
+        <p className="small">{order.id} · {baht(order.total)}</p>
+        <p className="num-display" style={{ marginTop: 6, fontSize: 26 }}>ออร์เดอร์นี้ถูกยกเลิกแล้ว</p>
+        <p className="body" style={{ marginTop: 10 }}>มีคำถาม ทักทีมทาง <a href="https://line.me/">LINE</a></p>
+      </section>
+    );
+  }
+  const cur = FLOW.indexOf(order.status as (typeof FLOW)[number]);
 
   return (
     <section className="panel" style={{ marginTop: 36 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div>
-          <p className="small">{order.id} · {baht(total)}</p>
+          <p className="small">{order.id} · {baht(order.total)}</p>
           <p className="num-display" style={{ marginTop: 6, fontSize: 26 }}>{HEADLINES[cur]}</p>
         </div>
         <StatusPill status={order.status} shippedTone="tag--ink" />
@@ -77,7 +86,7 @@ function OrderStatusCard({ order }: { order: AdminOrder }) {
         {STEPS.map((s, i) => {
           const done = i <= cur;
           const active = i === cur;
-          const extra = active ? (i === 3 && order.track ? `${order.carrier} · ${order.track}` : s.extra) : undefined;
+          const extra = active ? (i === 3 && order.tracking ? `${order.carrier} · ${order.tracking}` : s.extra) : undefined;
           return (
             <li key={s.title} data-done={done} data-active={active}>
               <div className="timeline__rail">
@@ -88,7 +97,7 @@ function OrderStatusCard({ order }: { order: AdminOrder }) {
               </div>
               <div className="timeline__body">
                 <p className="timeline__title">{s.title}</p>
-                <p className="small" style={{ marginTop: 2 }}>{done ? s.time : i === cur + 1 ? s.wait : 'ยังไม่ถึงขั้นนี้'}</p>
+                <p className="small" style={{ marginTop: 2 }}>{done ? thaiDateTime(s.at(order), true) || 'เรียบร้อย' : i === cur + 1 ? s.wait : 'ยังไม่ถึงขั้นนี้'}</p>
                 {extra && <p className="timeline__extra">{extra}</p>}
               </div>
             </li>
@@ -97,7 +106,7 @@ function OrderStatusCard({ order }: { order: AdminOrder }) {
       </ol>
 
       <div className="divider-top body" style={{ paddingTop: 16, fontSize: 14 }}>
-        <p>{order.items.map(([n]) => n).join(' · ')}</p>
+        <p>{order.items.map((i) => `${i.name}${i.opt && i.opt !== '—' ? ` ${i.opt}` : ''}${i.qty > 1 ? ` × ${i.qty}` : ''}`).join(' · ')}</p>
         <p style={{ marginTop: 6 }}>มีคำถาม ทักทีมทาง <a href="https://line.me/">LINE</a></p>
       </div>
     </section>

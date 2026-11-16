@@ -5,13 +5,15 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
-import { SHIPPING_TIERS } from '../data/shipping';
+import { useShopSettings } from '../context/SettingsContext';
+import { tierShort } from '../lib/shipping';
 import { CloseIcon } from './Icons';
 import { QtyStepper } from './QtyStepper';
 import './CartDrawer.css';
 
 export function CartDrawer() {
   const { drawerOpen, closeDrawer, items, count, kg, tier, shipping, subtotal, total, setQty } = useCart();
+  const { shipping: tiers } = useShopSettings();
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -48,10 +50,10 @@ export function CartDrawer() {
             <span className="strong">ค่าส่ง {baht(shipping)}</span>
           </div>
           <div className="cart-drawer__tiers" aria-hidden="true">
-            {SHIPPING_TIERS.map((t, i) => (
-              <div key={t.short}>
+            {tiers.map((_, i) => (
+              <div key={i}>
                 <span className="cart-drawer__tier-bar" data-on={i <= tier} />
-                <span className="cart-drawer__tier-label" data-current={i === tier}>{t.short}</span>
+                <span className="cart-drawer__tier-label" data-current={i === tier}>{tierShort(tiers, i)}</span>
               </div>
             ))}
           </div>
@@ -61,7 +63,7 @@ export function CartDrawer() {
           {items.length === 0 && <li className="cart-drawer__empty">ตะกร้ายังว่าง</li>}
           {items.map((it) => (
             <li key={it.id} className="cart-drawer__item">
-              <Image src={it.img} alt="" sizes="76px" />
+              <Image src={it.img} alt="" width={76} height={76} />
               <div className="cart-drawer__info">
                 <span className="cart-drawer__name">{it.name}</span>
                 <span className="small">{it.opt}</span>

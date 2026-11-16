@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { isSellable, listProducts } from '../../server/products';
 import { CartPage } from '../../views/CartPage';
 
 export const metadata: Metadata = {
@@ -6,6 +7,9 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function Page() {
-  return <CartPage />;
+const CROSS_SELL = ['slant-box', 'narrow-target'];
+
+export default async function Page() {
+  const products = (await listProducts()).filter((p) => CROSS_SELL.includes(p.slug) && isSellable(p));
+  return <CartPage crossSell={products} />;
 }

@@ -7,6 +7,7 @@ import { CheckIcon, GymIcon, ShopIcon, TrainerIcon, VetIcon } from '../component
 import { SiteHeader } from '../components/SiteHeader';
 import { img } from '../data/images';
 import { css } from '../data/style';
+import { submitRequest } from '../server/actions/shop';
 import './BusinessPage.css';
 
 const AUDIENCES = [
@@ -24,6 +25,23 @@ const STEPS = [
 
 export function BusinessPage() {
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const send = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    // Combine the contact fields and the checkbox group into readable values.
+    const contact = [f.get('เบอร์โทร'), f.get('LINE ID') && `LINE ${f.get('LINE ID')}`].filter(Boolean).join(' · ');
+    f.set('_contact', contact || String(f.get('อีเมล') ?? ''));
+    f.set('สนใจ', f.getAll('interest').join(', '));
+    f.delete('interest');
+    setSending(true);
+    const res = await submitRequest('business', f).catch(() => ({ ok: false as const, error: 'ส่งไม่สำเร็จ ลองใหม่อีกครั้ง' }));
+    setSending(false);
+    if (res.ok) setSent(true);
+    else setError(res.error);
+  };
 
   return (
     <>
@@ -105,28 +123,29 @@ export function BusinessPage() {
               <form
                 className="auto-grid"
                 style={css({ '--min': '260px', '--gap': '14px', marginTop: 22 })}
-                onSubmit={(e) => { e.preventDefault(); setSent(true); }}
+                onSubmit={send}
               >
-                <label className="field">ชื่อธุรกิจ<input className="input" type="text" autoComplete="organization" required /></label>
+                <label className="field">ชื่อธุรกิจ<input className="input" name="_name" type="text" autoComplete="organization" required /></label>
                 <label className="field">ประเภทธุรกิจ
-                  <select className="input">
+                  <select className="input" name="ประเภทธุรกิจ">
                     <option>ร้านค้าสัตว์เลี้ยง</option><option>เทรนเนอร์</option><option>โรงพยาบาลสัตว์</option><option>ศูนย์ฟิตเนสหมา</option><option>อื่น ๆ</option>
                   </select>
                 </label>
-                <label className="field">ชื่อผู้ติดต่อ<input className="input" type="text" autoComplete="name" required /></label>
-                <label className="field">เบอร์โทร<input className="input" type="tel" autoComplete="tel" /></label>
-                <label className="field">LINE ID<input className="input" type="text" /></label>
-                <label className="field">อีเมล<input className="input" type="email" autoComplete="email" /></label>
+                <label className="field">ชื่อผู้ติดต่อ<input className="input" name="ผู้ติดต่อ" type="text" autoComplete="name" required /></label>
+                <label className="field">เบอร์โทร<input className="input" name="เบอร์โทร" type="tel" autoComplete="tel" required /></label>
+                <label className="field">LINE ID<input className="input" name="LINE ID" type="text" /></label>
+                <label className="field">อีเมล<input className="input" name="อีเมล" type="email" autoComplete="email" /></label>
                 <fieldset className="plain span-all">
                   <legend style={{ fontSize: 14, fontWeight: 500 }}>สนใจแบบไหน</legend>
                   <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <label className="check-pill"><input type="checkbox" defaultChecked />ซื้อส่ง</label>
-                    <label className="check-pill"><input type="checkbox" />Dropship</label>
-                    <label className="check-pill"><input type="checkbox" />สั่งทำขนาดพิเศษ</label>
+                    <label className="check-pill"><input type="checkbox" name="interest" value="ซื้อส่ง" defaultChecked />ซื้อส่ง</label>
+                    <label className="check-pill"><input type="checkbox" name="interest" value="Dropship" />Dropship</label>
+                    <label className="check-pill"><input type="checkbox" name="interest" value="สั่งทำขนาดพิเศษ" />สั่งทำขนาดพิเศษ</label>
                   </div>
                 </fieldset>
-                <label className="field span-all">รายละเอียดเพิ่มเติม<textarea className="input" rows={4} placeholder="เช่น รุ่นที่สนใจ จำนวนโดยประมาณ" /></label>
-                <button type="submit" className="btn btn--primary btn--lg span-all">ส่งข้อมูล</button>
+                <label className="field span-all">รายละเอียดเพิ่มเติม<textarea className="input" name="รายละเอียด" rows={4} placeholder="เช่น รุ่นที่สนใจ จำนวนโดยประมาณ" /></label>
+                {error && <p role="alert" className="small span-all" style={{ color: '#8e1f0b' }}>{error}</p>}
+                <button type="submit" className="btn btn--primary btn--lg span-all" disabled={sending}>{sending ? 'กำลังส่ง…' : 'ส่งข้อมูล'}</button>
               </form>
             )}
           </div>

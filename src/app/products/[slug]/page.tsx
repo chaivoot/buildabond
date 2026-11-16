@@ -1,37 +1,33 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { PRODUCT_DETAILS } from '../../../data/productDetails';
-import { findProduct, PRODUCTS } from '../../../data/products';
+import { getProduct, isSellable, listProducts } from '../../../server/products';
 import { ProductPage } from '../../../views/ProductPage';
 
 type Props = { params: Promise<{ slug: string }> };
 
-const sellable = (slug: string) => {
-  const p = findProduct(slug);
-  return p && !p.comingSoon && !p.custom ? p : undefined;
-};
-
-export function generateStaticParams() {
-  return PRODUCTS.filter((p) => sellable(p.slug)).map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await listProducts()).filter(isSellable).map((p) => ({ slug: p.slug }));
 }
 
-export const dynamicParams = false;
+/** New products added in the admin render on first visit. */
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const p = sellable(slug);
-  if (!p) return {};
-  const cover = PRODUCT_DETAILS[slug]?.gallery[0].src ?? p.img!;
+  const p = await getProduct((await params).slug);
+  if (!isSellable(p)) return {};
+  const cover = p.detail.gallery?.[0]?.src || p.img;
   const description = `${p.th} · ${p.priceLabel}`;
   return {
     title: p.name,
     description,
-    openGraph: { title: p.name, description, images: [{ url: cover.src, width: cover.width, height: cover.height }] },
+    openGraph: { title: p.name, description, images: cover && !cover.startsWith('data:') ? [{ url: cover }] : undefined },
   };
 }
 
 export default async function Page({ params }: Props) {
-  const { slug } = await params;
-  if (!sellable(slug)) notFound();
-  return <ProductPage slug={slug} />;
+  const p = await getProduct((await params).slug);
+  if (!isSellable(p)) notFound();
+  const all = await listProducts();
+  const related = (p.detail.related ?? []).map((s) => all.find((x) => x.slug === s)).filter(isSellable);
+  return <ProductPage product={p} related={related} />;
 }

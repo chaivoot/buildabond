@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Providers } from '../components/Providers';
 import { img } from '../data/images';
 import { SITE } from '../data/site';
+import { getSettings } from '../server/settings';
 import '../styles/global.css';
 
 const anuphan = Anuphan({
@@ -39,11 +40,12 @@ export const viewport: Viewport = {
   themeColor: '#ffffff',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const settings = await getSettings();
   return (
     <html lang="th" className={`${anuphan.variable} ${plexThai.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers settings={settings}>{children}</Providers>
       </body>
     </html>
   );

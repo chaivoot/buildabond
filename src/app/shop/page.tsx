@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CATEGORIES, type CategoryId } from '../../data/products';
+import { listProducts } from '../../server/products';
 import { ShopPage } from '../../views/ShopPage';
 
 export const metadata: Metadata = {
@@ -10,5 +11,5 @@ export const metadata: Metadata = {
 export default async function Page({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
   const { cat } = await searchParams;
   const valid = CATEGORIES.some((c) => c.id === cat) ? (cat as CategoryId) : 'all';
-  return <ShopPage cat={valid} />;
+  return <ShopPage cat={valid} products={await listProducts()} />;
 }

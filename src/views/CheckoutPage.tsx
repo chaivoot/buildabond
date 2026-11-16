@@ -8,17 +8,18 @@ import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
 import { css } from '../data/style';
+import { placeOrder } from '../server/actions/shop';
+import { PROVINCES } from '../lib/provinces';
 import './CheckoutPage.css';
 
-const PROVINCES = ['กรุงเทพมหานคร', 'นนทบุรี', 'ปทุมธานี', 'สมุทรปราการ']; // TODO: full province list
 
 const STEPS = ['ที่อยู่จัดส่ง', 'สรุปออร์เดอร์', 'โอนเงิน'];
 
 export function CheckoutPage() {
-  const { items, count, subtotal, kg, shipping, total, placeOrder } = useCart();
+  const { items, count, subtotal, kg, shipping, total, clear } = useCart();
   const router = useRouter();
-  const [phone, setPhone] = useState('');
   const [placing, setPlacing] = useState(false);
+  const [error, setError] = useState('');
   const empty = items.length === 0;
 
   useEffect(() => {
@@ -27,11 +28,31 @@ export function CheckoutPage() {
 
   if (empty) return null;
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const v = (k: string) => String(f.get(k) ?? '').trim();
     setPlacing(true);
-    placeOrder(phone);
-    router.push('/order-placed');
+    setError('');
+    try {
+      const res = await placeOrder({
+        name: v('name'),
+        phone: v('phone'),
+        address: [v('street'), v('subdistrict'), v('district'), v('province'), v('postcode')].filter(Boolean).join(' '),
+        note: v('note'),
+        lines: items.map(({ slug, qty, color, magnets, custom }) => ({ slug, qty, color, magnets, custom })),
+      });
+      if (!res.ok) {
+        setError(res.error);
+        setPlacing(false);
+        return;
+      }
+      router.push(`/order-placed?id=${encodeURIComponent(res.id)}&k=${res.key}`);
+      clear();
+    } catch {
+      setError('ส่งคำสั่งซื้อไม่สำเร็จ ลองใหม่อีกครั้ง');
+      setPlacing(false);
+    }
   };
 
   return (
@@ -53,20 +74,20 @@ export function CheckoutPage() {
             <section>
               <h2 className="num-display" style={{ fontWeight: 400, fontSize: 24 }}>ที่อยู่จัดส่ง</h2>
               <div className="auto-grid" style={css({ '--min': '240px', '--gap': '14px', marginTop: 16 })}>
-                <label className="field">ชื่อ-นามสกุล<input className="input" type="text" autoComplete="name" required /></label>
+                <label className="field">ชื่อ-นามสกุล<input className="input" name="name" type="text" autoComplete="name" required /></label>
                 <label className="field">
                   เบอร์โทร
                   <span className="field__hint">ใช้ติดตามออร์เดอร์ด้วย</span>
-                  <input className="input" type="tel" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <input className="input" name="phone" type="tel" autoComplete="tel" required />
                 </label>
-                <label className="field span-all">ที่อยู่ (บ้านเลขที่ หมู่บ้าน ถนน)<textarea className="input" rows={2} autoComplete="street-address" required /></label>
-                <label className="field">แขวง / ตำบล<input className="input" type="text" required /></label>
-                <label className="field">เขต / อำเภอ<input className="input" type="text" required /></label>
+                <label className="field span-all">ที่อยู่ (บ้านเลขที่ หมู่บ้าน ถนน)<textarea className="input" name="street" rows={2} autoComplete="street-address" required /></label>
+                <label className="field">แขวง / ตำบล<input className="input" name="subdistrict" type="text" required /></label>
+                <label className="field">เขต / อำเภอ<input className="input" name="district" type="text" required /></label>
                 <label className="field">จังหวัด
-                  <select className="input">{PROVINCES.map((p) => <option key={p}>{p}</option>)}</select>
+                  <select className="input" name="province">{PROVINCES.map((p) => <option key={p}>{p}</option>)}</select>
                 </label>
-                <label className="field">รหัสไปรษณีย์<input className="input" type="text" inputMode="numeric" autoComplete="postal-code" pattern="[0-9]{5}" required /></label>
-                <label className="field span-all">หมายเหตุถึงร้าน (ไม่บังคับ)<input className="input" type="text" /></label>
+                <label className="field">รหัสไปรษณีย์<input className="input" name="postcode" type="text" inputMode="numeric" autoComplete="postal-code" pattern="[0-9]{5}" required /></label>
+                <label className="field span-all">หมายเหตุถึงร้าน (ไม่บังคับ)<input className="input" name="note" type="text" /></label>
               </div>
             </section>
 
@@ -91,7 +112,7 @@ export function CheckoutPage() {
               <ul className="checkout-items">
                 {items.map((it) => (
                   <li key={it.id}>
-                    <Image src={it.img} alt="" sizes="54px" />
+                    <Image src={it.img} alt="" width={54} height={54} />
                     <span style={{ flex: 1, fontSize: 14, lineHeight: 1.45 }}>
                       {it.name}{it.qty > 1 ? ` × ${it.qty}` : ''}
                       <br />
@@ -110,7 +131,10 @@ export function CheckoutPage() {
                 <span className="num-display" style={{ fontSize: 30 }}>{baht(total)}</span>
               </div>
             </div>
-            <button type="submit" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18 }}>ยืนยันคำสั่งซื้อ</button>
+            {error && <p role="alert" className="checkout-error">{error}</p>}
+            <button type="submit" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18 }} disabled={placing}>
+              {placing ? 'กำลังส่งคำสั่งซื้อ…' : 'ยืนยันคำสั่งซื้อ'}
+            </button>
             <p className="small" style={{ marginTop: 12 }}>จัดส่งผ่านไปรษณีย์ไทยหรือนิ่มเอ็กซ์เพรส แจ้งเลขพัสดุภายใน 1 วันหลังส่ง</p>
           </aside>
         </form>

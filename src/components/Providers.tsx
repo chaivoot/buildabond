@@ -2,13 +2,17 @@
 
 import type { ReactNode } from 'react';
 import { CartProvider } from '../context/CartContext';
+import { SettingsProvider } from '../context/SettingsContext';
+import type { ShopSettings } from '../lib/types';
 import { CartDrawer } from './CartDrawer';
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ settings, children }: { settings: ShopSettings; children: ReactNode }) {
   return (
-    <CartProvider>
-      {children}
-      <CartDrawer />
-    </CartProvider>
+    <SettingsProvider value={settings}>
+      <CartProvider>
+        {children}
+        <CartDrawer />
+      </CartProvider>
+    </SettingsProvider>
   );
 }
