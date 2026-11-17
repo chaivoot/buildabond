@@ -1,5 +1,5 @@
 import type { Order, OrderItem, OrderStatus } from '../lib/types';
-import { normalizePhone } from '../lib/phone';
+import { samePhone } from '../lib/phone';
 import { sql, toJson } from './db';
 
 interface Row {
@@ -43,8 +43,7 @@ export async function findOrderByContact(id: string, contact: string): Promise<O
   if (!o) return null;
   const c = contact.trim().toLowerCase();
   if (c.includes('@')) return o.email && o.email.toLowerCase() === c ? o : null;
-  const phone = normalizePhone(c);
-  return phone !== '' && normalizePhone(o.phone) === phone ? o : null;
+  return samePhone(o.phone, c) ? o : null;
 }
 
 export interface NewOrder {
