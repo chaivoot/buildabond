@@ -25,7 +25,7 @@ export function OrdersAdmin({ orders }: { orders: Order[] }) {
     const q = query.trim().toLowerCase();
     const qd = digits(q);
     return orders.filter(
-      (o) => (tab === 'all' || o.status === tab) && (!q || o.id.toLowerCase().includes(q) || o.name.toLowerCase().includes(q) || (qd !== '' && digits(o.phone).includes(qd))),
+      (o) => (tab === 'all' || o.status === tab) && (!q || o.id.toLowerCase().includes(q) || o.name.toLowerCase().includes(q) || (qd !== '' && digits(o.phone).includes(qd)) || o.email.toLowerCase().includes(q)),
     );
   }, [orders, tab, query]);
 
@@ -49,7 +49,7 @@ export function OrdersAdmin({ orders }: { orders: Order[] }) {
         <h1>ออร์เดอร์</h1>
         <label className="admin__search">
           <SearchIcon style={{ color: 'var(--ink-2)' }} />
-          <input type="search" aria-label="ค้นหาออร์เดอร์" placeholder="เลขออร์เดอร์ ชื่อ หรือเบอร์โทร" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input type="search" aria-label="ค้นหาออร์เดอร์" placeholder="เลขออร์เดอร์ ชื่อ เบอร์โทร หรืออีเมล" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
       </div>
 
@@ -105,6 +105,7 @@ export function OrdersAdmin({ orders }: { orders: Order[] }) {
 
             <div style={{ marginTop: 16, fontSize: 14, lineHeight: 1.6 }}>
               <p className="strong">{sel.name} · <a href={`tel:${digits(sel.phone)}`}>{sel.phone}</a></p>
+              {sel.email && <p><a href={`mailto:${sel.email}?subject=${encodeURIComponent(`ออร์เดอร์ ${sel.id}`)}`}>{sel.email}</a></p>}
               <p className="muted" style={{ marginTop: 2 }}>{sel.address}</p>
               {sel.note && <p style={{ marginTop: 6 }}>หมายเหตุ: {sel.note}</p>}
             </div>
