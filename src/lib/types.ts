@@ -119,6 +119,8 @@ export interface Order {
   shippedAt: string | null;
   carrier: string;
   tracking: string;
+  /** Linked customer (see /admin/customers); null for guest orders that couldn't be linked. */
+  customerId: string | null;
 }
 
 export type RequestKind = 'custom' | 'business';

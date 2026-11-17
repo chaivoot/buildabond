@@ -108,6 +108,18 @@ const SCHEMA = [
   )`,
   `CREATE TABLE IF NOT EXISTS lookup_attempts (ip text NOT NULL, at timestamptz NOT NULL DEFAULT now())`,
   `CREATE INDEX IF NOT EXISTS lookup_attempts_ip_at ON lookup_attempts (ip, at)`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id text`,
+  `CREATE INDEX IF NOT EXISTS orders_customer_id ON orders (customer_id)`,
+  `CREATE TABLE IF NOT EXISTS customer_events (
+    id text PRIMARY KEY,
+    customer_id text NOT NULL,
+    at timestamptz NOT NULL DEFAULT now(),
+    kind text NOT NULL,
+    old_value text NOT NULL DEFAULT '',
+    new_value text NOT NULL DEFAULT '',
+    order_id text
+  )`,
+  `CREATE INDEX IF NOT EXISTS customer_events_customer ON customer_events (customer_id, at)`,
 ];
 
 const json = (v: unknown) => JSON.stringify(v);
@@ -120,6 +132,25 @@ const CONTENT_FIXES: [slug: string, from: string, to: string][] = [
   ['target-box', 'กล่องยืน สูง 6 / 10 cm', 'สูง 6 / 10 cm'],
   ['slant-box', 'ฐานเอียง 15° / 20°', 'มุมเอียง 15° / 20°'],
 ];
+
+/** Links unlinked orders to customers by email or phone, and gives each customer a "created" history entry. */
+async function linkOrders(d: Driver) {
+  await d.query(
+    `UPDATE orders o SET customer_id = c.id FROM customers c
+     WHERE o.customer_id IS NULL
+       AND ((o.email <> '' AND lower(o.email) = c.email) OR regexp_replace(o.phone, '[^0-9]', '', 'g') = c.phone)`,
+  );
+  // A customer dates from their first order, even when the order is older than the customer record.
+  await d.query(
+    `UPDATE customers c SET created_at = o.first FROM (SELECT customer_id, min(created_at) AS first FROM orders GROUP BY customer_id) o
+     WHERE o.customer_id = c.id AND o.first < c.created_at`,
+  );
+  await d.query(
+    `INSERT INTO customer_events (id, customer_id, at, kind, new_value)
+     SELECT 'created-' || c.id, c.id, c.created_at, 'created', c.name FROM customers c
+     ON CONFLICT (id) DO UPDATE SET at = LEAST(customer_events.at, EXCLUDED.at)`,
+  );
+}
 
 /** Runs `fn` once per database, the first time a server sees the marker missing. */
 async function once(d: Driver, marker: string, fn: () => Promise<void>) {
@@ -144,6 +175,8 @@ async function migrate(d: Driver) {
       );
     }
   });
+  // Link orders placed before customer history existed, by email or phone.
+  await once(d, 'migration:customer-links-1', () => linkOrders(d));
   // English copy for products seeded before the site was bilingual (only where none has been entered).
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
@@ -182,6 +215,7 @@ async function migrate(d: Driver) {
       [r.id, r.kind, r.createdAt, r.status, r.name, r.contact, json(r.data)],
     );
   }
+  await linkOrders(d);
 }
 
 // Kept on globalThis: Next.js may load this module more than once in a single server process

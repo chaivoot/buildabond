@@ -79,3 +79,18 @@
 .btn--danger:hover { background: #fdf0ec; color: #8e1f0b; }
 .admin-slip-img { display: block; position: relative; width: 92px; height: 140px; flex: none; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--white); }
 .admin-slip-img img { object-fit: cover; }
+
+/* ---------- Customers ---------- */
+.admin-dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
+.admin-dl dt { color: var(--ink-2); }
+.admin-dl dd { margin: 0; overflow-wrap: anywhere; }
+.admin-stats { margin-top: 18px; padding-top: 14px; border-top: 1px solid #f0eadf; display: flex; gap: 28px; flex-wrap: wrap; }
+.admin-stats p { font-family: var(--font-display); font-size: 26px; }
+.admin-stats span { font-size: 12px; color: var(--ink-2); }
+.admin-timeline { margin: 0; padding: 0; list-style: none; }
+.admin-timeline li { padding: 12px 0; border-bottom: 1px solid #f0eadf; font-size: 14px; }
+.admin-timeline li:last-child { border-bottom: 0; }
+.admin-timeline__head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.admin-timeline__change { margin-top: 6px; line-height: 1.6; }
+.admin-timeline__change del { color: var(--ink-3); }
+.admin-timeline__change ins { text-decoration: none; font-weight: 600; }
