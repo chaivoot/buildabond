@@ -194,6 +194,10 @@ async function migrate(d: Driver) {
   await once(d, 'migration:customer-links-1', () => linkOrders(d));
   // Phone numbers saved before they were normalised (e.g. "+660818890911"): store them as 081-234-5678 / digits.
   await once(d, 'migration:phones-1', () => normalizeSavedPhones(d));
+  // Target Box and Slant Box take magnets too (as an optional add-on, like Place Board).
+  await once(d, 'migration:magnets-1', async () => {
+    await d.query(`UPDATE products SET magnets = true WHERE slug IN ('target-box', 'slant-box')`);
+  });
   // English copy for products seeded before the site was bilingual (only where none has been entered).
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
