@@ -7,11 +7,11 @@ import { SearchIcon } from '../../components/Icons';
 import { ORDER_STATUSES, StatusPill, type OrderStatus } from '../../components/StatusPill';
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
+import { formatPhone, normalizePhone, phoneSearchDigits } from '../../lib/phone';
 import type { Order } from '../../lib/types';
 import { markShipped, updateOrderStatus } from '../../server/actions/admin';
 
 const CARRIERS = ['ไปรษณีย์ไทย', 'นิ่มเอ็กซ์เพรส', 'Flash Express', 'Kerry Express', 'J&T Express'];
-const digits = (s: string) => s.replace(/\D/g, '');
 
 export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initialOrder?: string }) {
   const [tab, setTab] = useState<OrderStatus | 'all'>('all');
@@ -24,9 +24,9 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const qd = digits(q);
+    const qd = phoneSearchDigits(q);
     return orders.filter(
-      (o) => (tab === 'all' || o.status === tab) && (!q || o.id.toLowerCase().includes(q) || o.name.toLowerCase().includes(q) || (qd !== '' && digits(o.phone).includes(qd)) || o.email.toLowerCase().includes(q)),
+      (o) => (tab === 'all' || o.status === tab) && (!q || o.id.toLowerCase().includes(q) || o.name.toLowerCase().includes(q) || (qd !== '' && normalizePhone(o.phone).includes(qd)) || o.email.toLowerCase().includes(q)),
     );
   }, [orders, tab, query]);
 
@@ -83,7 +83,7 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
                   <td>
                     <button type="button" className="admin__order-link" onClick={() => { setSelId(o.id); setTrackNo(''); setError(''); }}>{o.id}</button>
                   </td>
-                  <td>{o.name}<br /><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{o.phone}</span></td>
+                  <td>{o.name}<br /><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{formatPhone(o.phone)}</span></td>
                   <td className="muted">{thaiDateTime(o.createdAt)}</td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>{baht(o.total)}</td>
                   <td><StatusPill status={o.status} /></td>
@@ -105,7 +105,7 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
             </div>
 
             <div style={{ marginTop: 16, fontSize: 14, lineHeight: 1.6 }}>
-              <p className="strong">{sel.name} · <a href={`tel:${digits(sel.phone)}`}>{sel.phone}</a></p>
+              <p className="strong">{sel.name} · <a href={`tel:${normalizePhone(sel.phone)}`}>{formatPhone(sel.phone)}</a></p>
               {sel.email && <p><a href={`mailto:${sel.email}?subject=${encodeURIComponent(`ออร์เดอร์ ${sel.id}`)}`}>{sel.email}</a></p>}
               <p className="muted" style={{ marginTop: 2 }}>{sel.address}</p>
               {sel.note && <p style={{ marginTop: 6 }}>หมายเหตุ: {sel.note}</p>}

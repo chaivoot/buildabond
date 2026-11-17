@@ -5,15 +5,15 @@ import { useMemo, useState } from 'react';
 import { SearchIcon } from '../../components/Icons';
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
+import { formatPhone, phoneSearchDigits } from '../../lib/phone';
 import type { CustomerSummary } from '../../server/customers';
 
-const digits = (s: string) => s.replace(/\D/g, '');
 
 export function CustomersAdmin({ customers }: { customers: CustomerSummary[] }) {
   const [query, setQuery] = useState('');
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const qd = digits(q);
+    const qd = phoneSearchDigits(q);
     return customers.filter((c) => !q || c.name.toLowerCase().includes(q) || c.email.includes(q) || (qd !== '' && c.phone.includes(qd)));
   }, [customers, query]);
 
@@ -47,7 +47,7 @@ export function CustomersAdmin({ customers }: { customers: CustomerSummary[] }) 
                   <br />
                   <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{c.province}</span>
                 </td>
-                <td>{c.email}<br /><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{c.phone}</span></td>
+                <td>{c.email}<br /><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{formatPhone(c.phone)}</span></td>
                 <td style={{ textAlign: 'right' }}>{c.orderCount}</td>
                 <td style={{ textAlign: 'right', fontWeight: 600 }}>{baht(c.totalSpent)}</td>
                 <td className="muted">{c.lastOrderAt ? thaiDateTime(c.lastOrderAt) : '—'}</td>

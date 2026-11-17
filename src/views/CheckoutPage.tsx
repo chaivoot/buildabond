@@ -10,6 +10,7 @@ import { baht } from '../data/format';
 import { css } from '../data/style';
 import { useI18n } from '../i18n/LocaleProvider';
 import { itemName, itemOptions } from '../lib/cartItem';
+import { isThaiPhone, normalizePhone } from '../lib/phone';
 import { provinceOptions } from '../lib/provinces';
 import { loadCustomer, saveCustomer, type SavedCustomer } from '../lib/savedCustomer';
 import { confirmCustomerChange, findReturningCustomer, placeOrder } from '../server/actions/shop';
@@ -30,10 +31,7 @@ type Lookup =
   | { s: 'verifiedEmail'; oldEmail: string };
 
 const validEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
-const validPhone = (s: string) => {
-  const d = s.replace(/\D/g, '');
-  return d.length >= 9 && d.length <= 11;
-};
+const validPhone = isThaiPhone;
 
 export function CheckoutPage() {
   const { lang, t } = useI18n();
@@ -63,7 +61,7 @@ export function CheckoutPage() {
 
   // When email + phone are both filled in, check whether this is a returning customer.
   useEffect(() => {
-    const pair = `${form.email.trim().toLowerCase()}|${form.phone.replace(/\D/g, '')}`;
+    const pair = `${form.email.trim().toLowerCase()}|${normalizePhone(form.phone)}`;
     if (!validEmail(form.email) || !validPhone(form.phone)) {
       lastPair.current = '';
       setLookup({ s: 'idle' });

@@ -7,6 +7,7 @@ import { shippingFee } from '../../lib/shipping';
 import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
 import { allowAttempt, isEmail, isPhone, lookupCustomer, normalizeEmail, normalizePhone, recordCustomer, verifiedAddress, type CustomerAddress, type Lookup } from '../customers';
+import { formatPhone, isThaiPhone } from '../../lib/phone';
 import { attachSlip, createOrder, linkOrderToCustomer, findOrderByContact, getOrderWithKey } from '../orders';
 import { listProducts } from '../products';
 import { createRequest } from '../requests';
@@ -40,7 +41,8 @@ const clean = (s: unknown, max = 500) => String(s ?? '').trim().slice(0, max);
 
 export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: string; key: string }>> {
   const name = clean(input.name, 120);
-  const phone = clean(input.phone, 40);
+  // Saved in one format (081-234-5678) whatever the customer or autofill typed (+66 81…, 0066…).
+  const phone = formatPhone(clean(input.phone, 40));
   const addr: CustomerAddress = {
     name,
     street: clean(input.street, 300),
@@ -53,6 +55,7 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const email = clean(input.email, 200).toLowerCase();
   if (!name || !phone || !address || !email) return { ok: false, error: 'missingFields' };
   if (!isEmail(email)) return { ok: false, error: 'invalidEmail' };
+  if (!isThaiPhone(phone)) return { ok: false, error: 'invalidPhone' };
   if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 50) return { ok: false, error: 'emptyCart' };
 
   const [products, settings] = await Promise.all([listProducts(), getSettings()]);
