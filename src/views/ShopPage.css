@@ -1,5 +1,5 @@
 .shop-filters {
-  position: sticky; top: var(--header-h); z-index: 10; background: var(--white);
+  position: sticky; top: var(--header-full); z-index: 10; background: var(--white);
   margin: 24px -16px 0; padding: 10px 16px; display: flex; gap: 8px; overflow-x: auto; white-space: nowrap;
 }
 .shop-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 24px 12px; }

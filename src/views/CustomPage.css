@@ -4,6 +4,6 @@
 .size-bar__labels { position: relative; height: 20px; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
 .size-bar__labels span { position: absolute; transform: translateX(-50%); }
 
-.quote-card { flex: 1 1 340px; min-width: 0; position: sticky; top: 72px; padding: 26px; }
+.quote-card { flex: 1 1 340px; min-width: 0; position: sticky; top: calc(var(--header-full) + 16px); padding: 26px; }
 .quote-card__kicker { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rust); font-weight: 600; }
 .quote-card__price { margin-top: 8px; font-family: var(--font-display); font-weight: 200; font-size: 60px; line-height: 1; }

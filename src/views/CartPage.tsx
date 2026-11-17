@@ -23,7 +23,7 @@ export function CartPage({ crossSell }: { crossSell: Product[] }) {
 
   return (
     <>
-      <SiteHeader variant="simple" sticky={false} right={<Link href="/shop" style={{ fontSize: 14, color: 'var(--ink)' }}>{c.continueShopping}</Link>} />
+      <SiteHeader />
       <main className="container" style={{ paddingTop: 32, paddingBottom: 80 }}>
         <h1 className="display" style={{ fontSize: 'clamp(38px, 8vw, 64px)', letterSpacing: 0 }}>{c.title}</h1>
         <div className="split" style={{ marginTop: 24 }}>

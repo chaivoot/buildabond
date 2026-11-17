@@ -40,7 +40,7 @@ export function TrackPage({ initialId, initialPhone, initialResult }: Props) {
 
   return (
     <>
-      <SiteHeader variant="simple" sticky={false} />
+      <SiteHeader />
       <main className="container container--narrow" style={{ paddingTop: 36, paddingBottom: 80 }}>
         <h1 className="display" style={{ fontSize: 'clamp(36px, 8vw, 56px)', lineHeight: 1.1, letterSpacing: 0 }}>{tr.title}</h1>
         <p className="lead" style={{ marginTop: 10, fontSize: 16, lineHeight: 1.7 }}>{tr.lead}</p>

@@ -33,7 +33,7 @@ export function HomePage() {
   const h = t.home;
   return (
     <>
-      <SiteHeader showNav />
+      <SiteHeader />
       <main className="home">
         <section className="container home-hero">
           <p className="eyebrow" style={{ letterSpacing: '0.16em', marginBottom: 14 }}>Active Play &amp; Fitness</p>

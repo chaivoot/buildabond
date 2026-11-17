@@ -44,9 +44,7 @@ export function BusinessPage() {
   return (
     <>
       <SiteHeader
-        right={
-          <a href="#contact" className="btn btn--primary btn--sm" style={{ height: 40, padding: '0 16px', marginLeft: 4 }}>{b.contactSales}</a>
-        }
+        extra={<a href="#contact" className="btn btn--primary btn--sm site-header__cta">{b.contactSales}</a>}
       />
       <main>
         <section className="container" style={{ paddingTop: 44 }}>
