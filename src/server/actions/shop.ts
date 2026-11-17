@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { priceLine, type CartLineInput } from '../../lib/pricing';
 import { shippingFee } from '../../lib/shipping';
+import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
 import { attachSlip, createOrder, findOrderByPhone, getOrderWithKey } from '../orders';
 import { listProducts } from '../products';
@@ -18,7 +19,12 @@ export interface CheckoutInput {
   lines: CartLineInput[];
 }
 
-type Result<T> = { ok: true } & T | { ok: false; error: string };
+/** Errors are codes; the browser shows them in the visitor's language (dictionary: errors). */
+export type ErrorCode = keyof Dict['errors'];
+type Result<T> = ({ ok: true } & T) | { ok: false; error: ErrorCode };
+
+const isErrorCode = (v: unknown): v is ErrorCode =>
+  ['noFile', 'fileType', 'fileSize'].includes(String(v));
 
 const clean = (s: unknown, max = 500) => String(s ?? '').trim().slice(0, max);
 
@@ -26,8 +32,8 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const name = clean(input.name, 120);
   const phone = clean(input.phone, 40);
   const address = clean(input.address, 600);
-  if (!name || !phone || !address) return { ok: false, error: 'กรอกชื่อ เบอร์โทร และที่อยู่ให้ครบ' };
-  if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 50) return { ok: false, error: 'ตะกร้าว่าง' };
+  if (!name || !phone || !address) return { ok: false, error: 'missingFields' };
+  if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 50) return { ok: false, error: 'emptyCart' };
 
   const [products, settings] = await Promise.all([listProducts(), getSettings()]);
   const bySlug = new Map(products.map((p) => [p.slug, p]));
@@ -35,7 +41,7 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   for (const line of input.lines) {
     const qty = Math.max(1, Math.min(99, Math.floor(Number(line.qty) || 1)));
     const priced = priceLine(line, bySlug.get(line.slug), settings);
-    if (!priced) return { ok: false, error: 'มีสินค้าในตะกร้าที่สั่งซื้อไม่ได้แล้ว กรุณาตรวจสอบตะกร้าอีกครั้ง' };
+    if (!priced) return { ok: false, error: 'unavailable' };
     items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: priced.unitPrice, qty, kg: priced.kg });
   }
   const subtotal = items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
@@ -48,14 +54,14 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
 
 export async function uploadSlip(id: string, key: string, form: FormData): Promise<Result<{ url: string }>> {
   const order = await getOrderWithKey(id, key);
-  if (!order) return { ok: false, error: 'ไม่พบออร์เดอร์' };
+  if (!order) return { ok: false, error: 'orderNotFound' };
   try {
     const url = await storeImage(form.get('file') as File, 'slips');
     await attachSlip(id, url);
     revalidatePath('/admin');
     return { ok: true, url };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ' };
+    return { ok: false, error: e instanceof Error && isErrorCode(e.message) ? e.message : 'uploadFailed' };
   }
 }
 
@@ -79,7 +85,7 @@ export async function submitRequest(kind: 'custom' | 'business', form: FormData)
     else if (k === '_contact') contact = clean(v, 200);
     else data[clean(k, 60)] = clean(v, 1000);
   }
-  if (!name || !contact) return { ok: false, error: 'กรอกชื่อและช่องทางติดต่อ' };
+  if (!name || !contact) return { ok: false, error: 'missingContact' };
   await createRequest(kind, name, contact, data);
   revalidatePath('/admin/requests');
   return { ok: true };

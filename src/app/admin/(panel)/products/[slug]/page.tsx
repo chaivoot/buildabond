@@ -5,7 +5,7 @@ import { ProductEditor } from '../../../../../views/admin/ProductEditor';
 
 const blank = (sort: number): Product => ({
   slug: '', sort, cat: 'sb', name: '', th: '', priceLabel: '', price: 0, kg: 0, img: '', cover: false, badge: '', comingSoon: false,
-  custom: false, colors: [], colorsLabel: '', swatchesLabel: '', magnets: false, sku: '', stock: 'ready', visible: false, detail: {},
+  custom: false, colors: [], colorsLabel: '', swatchesLabel: '', magnets: false, sku: '', stock: 'ready', visible: false, detail: {}, en: {},
 });
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {

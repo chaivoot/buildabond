@@ -1,19 +1,22 @@
 'use client';
 
 import Image from 'next/image';
-import { SIZES } from '../data/sizes';
-import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import { ProductTile } from '../components/ProductTile';
 import { SiteHeader } from '../components/SiteHeader';
 import { img } from '../data/images';
 import { CATEGORIES, type CategoryId, type Product } from '../data/products';
+import { SIZES } from '../data/sizes';
+import { useI18n } from '../i18n/LocaleProvider';
 import './ShopPage.css';
 
 type Sort = 'featured' | 'asc' | 'desc';
 
 export function ShopPage({ cat, products }: { cat: CategoryId | 'all'; products: Product[] }) {
+  const { t } = useI18n();
+  const s = t.shop;
   const router = useRouter();
   const [sort, setSort] = useState<Sort>('featured');
 
@@ -27,18 +30,16 @@ export function ShopPage({ cat, products }: { cat: CategoryId | 'all'; products:
     });
   }, [cat, sort, products]);
 
-  const chips: { id: CategoryId | 'all'; label: string }[] = [{ id: 'all', label: 'ทั้งหมด' }, ...CATEGORIES];
+  const chips: { id: CategoryId | 'all'; label: string }[] = [{ id: 'all', label: s.all }, ...CATEGORIES];
 
   return (
     <>
       <SiteHeader />
       <main className="container" style={{ paddingTop: 36, paddingBottom: 80 }}>
-        <h1 className="display">สินค้าทั้งหมด</h1>
-        <p className="lead" style={{ marginTop: 12, maxWidth: 560, fontSize: 16, lineHeight: 1.7 }}>
-          อุปกรณ์ฟิตเนส ของเล่นไล่ล่า และของเล่นดึง ทุกชิ้นทดสอบกับหมาจริงก่อนวางขาย
-        </p>
+        <h1 className="display">{s.title}</h1>
+        <p className="lead" style={{ marginTop: 12, maxWidth: 560, fontSize: 16, lineHeight: 1.7 }}>{s.lead}</p>
 
-        <div role="group" aria-label="กรองตามกลุ่มสินค้า" className="shop-filters">
+        <div role="group" aria-label={s.filterAria} className="shop-filters">
           {chips.map((c) => (
             <button
               key={c.id}
@@ -53,13 +54,13 @@ export function ShopPage({ cat, products }: { cat: CategoryId | 'all'; products:
         </div>
 
         <div className="row-between muted" style={{ marginTop: 14, fontSize: 14 }}>
-          <span>{list.length} รายการ</span>
+          <span>{s.count(list.length)}</span>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            เรียงตาม
+            {s.sortBy}
             <select className="input" style={{ height: 44, width: 'auto', fontSize: 14 }} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-              <option value="featured">แนะนำ</option>
-              <option value="asc">ราคาต่ำไปสูง</option>
-              <option value="desc">ราคาสูงไปต่ำ</option>
+              <option value="featured">{s.sortFeatured}</option>
+              <option value="asc">{s.sortAsc}</option>
+              <option value="desc">{s.sortDesc}</option>
             </select>
           </label>
         </div>
@@ -71,13 +72,11 @@ export function ShopPage({ cat, products }: { cat: CategoryId | 'all'; products:
         </div>
 
         <Link href="/custom" className="on-dark shop-custom">
-          <Image src={img.jumpBox} alt="กล่องกระโดดสั่งทำ ปิดผิวยางสีดำ" sizes={SIZES.half} />
+          <Image src={img.jumpBox} alt={s.customAlt} sizes={SIZES.half} />
           <div className="shop-custom__body">
-            <p className="num-display" style={{ fontWeight: 300, fontSize: 30, lineHeight: 1.2 }}>ต้องการขนาดพิเศษ?</p>
-            <p style={{ marginTop: 10, fontSize: 15, lineHeight: 1.7, color: 'var(--on-dark-2)' }}>
-              กรอกกว้าง ยาว สูง แล้วเห็นราคาทันที Jump Box เริ่ม ฿2,590 Platform เริ่ม ฿2,990
-            </p>
-            <span className="btn btn--light btn--sm" style={{ marginTop: 16, height: 48, padding: '0 24px', fontSize: 16 }}>คำนวณราคาสั่งทำ</span>
+            <p className="num-display" style={{ fontWeight: 300, fontSize: 30, lineHeight: 1.2 }}>{s.customTitle}</p>
+            <p style={{ marginTop: 10, fontSize: 15, lineHeight: 1.7, color: 'var(--on-dark-2)' }}>{s.customBody}</p>
+            <span className="btn btn--light btn--sm" style={{ marginTop: 16, height: 48, padding: '0 24px', fontSize: 16 }}>{s.customCta}</span>
           </div>
         </Link>
       </main>

@@ -9,6 +9,8 @@ export interface ColorOption {
   name: string;
   /** CSS background for the swatch dot */
   swatch: string;
+  /** Original Thai label, kept when the option is shown in another language. */
+  labelTh?: string;
 }
 
 export interface ProductDetail {
@@ -20,6 +22,19 @@ export interface ProductDetail {
   specs?: [string, string][];
   related?: string[];
   faq?: { q: string; a: string }[];
+}
+
+/** English copy for a product. Empty fields fall back to the Thai text. */
+export interface ProductText {
+  desc?: string;
+  priceLabel?: string;
+  badge?: string;
+  subtitle?: string;
+  specs?: [string, string][];
+  story?: { title: string; body: string; alt: string };
+  moves?: { tag: string; tone: string; title: string; body: string }[];
+  faq?: { q: string; a: string }[];
+  galleryAlts?: string[];
 }
 
 export type StockStatus = 'ready' | 'preorder';
@@ -54,6 +69,7 @@ export interface Product {
   stock: StockStatus;
   visible: boolean;
   detail: ProductDetail;
+  en: ProductText;
 }
 
 export interface ShippingTier {
@@ -63,7 +79,8 @@ export interface ShippingTier {
 }
 
 export interface ShopSettings {
-  bank: { name: string; number: string; holder: string };
+  /** nameEn is shown to English-language visitors. */
+  bank: { name: string; nameEn?: string; number: string; holder: string };
   /** PromptPay phone or national ID; empty hides the QR. */
   promptpay: string;
   magnetPrice: number;

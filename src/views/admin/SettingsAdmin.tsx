@@ -35,6 +35,7 @@ export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
           <h2>การรับเงิน</h2>
           <div className="admin-grid">
             <label className="field">ธนาคาร<input className="input" value={s.bank.name} onChange={(e) => patch({ bank: { ...s.bank, name: e.target.value } })} /></label>
+            <label className="field">ชื่อธนาคาร (ภาษาอังกฤษ)<input className="input" value={s.bank.nameEn ?? ''} onChange={(e) => patch({ bank: { ...s.bank, nameEn: e.target.value } })} placeholder="Krungthai Bank (KTB)" /></label>
             <label className="field">เลขบัญชี<input className="input" value={s.bank.number} onChange={(e) => patch({ bank: { ...s.bank, number: e.target.value } })} /></label>
             <label className="field">ชื่อบัญชี<input className="input" value={s.bank.holder} onChange={(e) => patch({ bank: { ...s.bank, holder: e.target.value } })} /></label>
             <label className="field">

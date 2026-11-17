@@ -1,29 +1,27 @@
 'use client';
 
 import Image from 'next/image';
-import { SIZES } from '../data/sizes';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { ColorPicker } from '../components/ColorPicker';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
-import { quoteCustomSize } from '../lib/customSize';
-import { CUSTOM_KG, CUSTOM_SLUG } from '../lib/pricing';
-import { submitRequest } from '../server/actions/shop';
 import { baht } from '../data/format';
 import { img } from '../data/images';
 import { RUBBER_COLORS } from '../data/seed';
+import { SIZES } from '../data/sizes';
 import { css } from '../data/style';
+import { useI18n } from '../i18n/LocaleProvider';
+import { quoteCustomSize } from '../lib/customSize';
+import { CUSTOM_KG, CUSTOM_SLUG } from '../lib/pricing';
+import { localizeColor } from '../lib/productText';
+import { submitRequest } from '../server/actions/shop';
 import './CustomPage.css';
 
 const BAR_MAX = 180; // the bar spans 0–180 cm so the 120 / 150 marks sit at 66.6% / 83.3%
 
-const RULES = [
-  { name: 'Jump Box', body: 'สูงไม่เกิน 40 cm และกว้าง + ยาว + สูง รวมไม่เกิน 120 cm', price: '฿2,590' },
-  { name: 'Platform', body: 'สูงไม่เกิน 10 cm และขนาดรวมมากกว่า 120 cm แต่ไม่เกิน 150 cm', price: '฿2,990' },
-  { name: 'ขนาดพิเศษ', body: 'ขนาดรวมเกิน 150 cm หรือสัดส่วนนอกเงื่อนไขด้านบน', price: 'ประเมินราคา' },
-];
-
 export function CustomPage() {
+  const { lang, t } = useI18n();
+  const c = t.custom;
   const { add, openDrawer } = useCart();
   const [dims, setDims] = useState({ w: '50', l: '50', h: '20' });
   const [color, setColor] = useState(0);
@@ -31,34 +29,36 @@ export function CustomPage() {
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
 
-  const sendQuote = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    f.set('ขนาด (กว้าง×ยาว×สูง)', `${dims.w} × ${dims.l} × ${dims.h} cm`);
-    f.set('ขนาดรวม', `${q.sum} cm`);
-    f.set('สีผิวยาง', RUBBER_COLORS[color].label);
-    setSending(true);
-    const res = await submitRequest('custom', f).catch(() => ({ ok: false as const, error: 'ส่งไม่สำเร็จ ลองใหม่อีกครั้ง' }));
-    setSending(false);
-    if (res.ok) setSent(true);
-    else setError(res.error);
-  };
-
   const n = (v: string) => Math.max(0, parseFloat(v) || 0);
   const q = quoteCustomSize(n(dims.w), n(dims.l), n(dims.h));
   const pct = Math.min(100, (q.sum / BAR_MAX) * 100);
-  const c = RUBBER_COLORS[color];
-  const colorName = color === 2 ? 'ผิวยางผสมฟ้า-ส้ม' : `ผิวยาง${c.label}`;
+  const colors = RUBBER_COLORS.map((x) => localizeColor(x, lang));
+  const reason = q.ok ? '' : q.reason === 'over' ? c.reasons.over(q.sum) : c.reasons[q.reason];
+
+  const sendQuote = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    // Request details are stored with Thai labels for the admin.
+    f.set('ขนาด (กว้าง×ยาว×สูง)', `${dims.w} × ${dims.l} × ${dims.h} cm`);
+    f.set('ขนาดรวม', `${q.sum} cm`);
+    f.set('สีผิวยาง', RUBBER_COLORS[color].label);
+    if (lang !== 'th') f.set('ภาษา', 'English');
+    setSending(true);
+    const res = await submitRequest('custom', f).catch(() => ({ ok: false as const, error: 'sendFailed' as const }));
+    setSending(false);
+    if (res.ok) setSent(true);
+    else setError(t.errors[res.error]);
+  };
 
   const addToCart = () => {
     if (!q.ok) return;
     add({
       slug: CUSTOM_SLUG,
       color,
+      colorTh: RUBBER_COLORS[color].label,
       custom: { w: n(dims.w), l: n(dims.l), h: n(dims.h) },
-      name: `${q.model} สั่งทำ`,
-      opt: `${n(dims.w)}×${n(dims.l)}×${n(dims.h)} cm · ${c.label}`,
-      status: 'ผลิตตามสั่ง · 28-35 วัน',
+      name: q.model,
+      kind: 'custom',
       unitPrice: q.price,
       kg: CUSTOM_KG,
       img: img.jumpBox.src,
@@ -85,24 +85,24 @@ export function CustomPage() {
       <SiteHeader />
       <main>
         <section className="container" style={{ paddingTop: 40 }}>
-          <p className="eyebrow">Customised Size</p>
-          <h1 className="display" style={{ letterSpacing: 0 }}>สั่งทำกล่องและฐานรอง ตามขนาดที่ต้องการ</h1>
-          <p className="lead" style={{ marginTop: 16, maxWidth: 580 }}>ออกแบบกิจกรรมได้หลากหลายขึ้น กรอกกว้าง ยาว สูง แล้วระบบจะบอกรุ่นและราคาให้ทันที</p>
-          <Image priority sizes={SIZES.full} src={img.jumpBox} alt="กล่องกระโดดสั่งทำ ผิวยางสีดำ มีขั้นบันไดด้านข้าง" className="photo" style={{ marginTop: 28, aspectRatio: '16 / 10', maxHeight: 560 }} />
+          <p className="eyebrow">{c.eyebrow}</p>
+          <h1 className="display" style={{ letterSpacing: 0 }}>{c.title}</h1>
+          <p className="lead" style={{ marginTop: 16, maxWidth: 580 }}>{c.lead}</p>
+          <Image priority sizes={SIZES.full} src={img.jumpBox} alt={c.heroAlt} className="photo" style={{ marginTop: 28, aspectRatio: '16 / 10', maxHeight: 560 }} />
         </section>
 
         <section className="container split" style={{ paddingTop: 40 }}>
           <form className="stack" style={css({ flex: '1 1 380px', '--gap': '22px' })} onSubmit={(e) => e.preventDefault()}>
-            <h2 className="num-display" style={{ fontWeight: 300, fontSize: 32 }}>ขนาดที่ต้องการ (cm)</h2>
+            <h2 className="num-display" style={{ fontWeight: 300, fontSize: 32 }}>{c.sizeTitle}</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-              {dimField('w', 'กว้าง')}
-              {dimField('l', 'ยาว')}
-              {dimField('h', 'สูง')}
+              {dimField('w', c.width)}
+              {dimField('l', c.length)}
+              {dimField('h', c.height)}
             </div>
 
             <div>
               <div className="sum-row" style={{ fontSize: 14 }}>
-                <span>กว้าง + ยาว + สูง</span>
+                <span>{c.sumLabel}</span>
                 <span className="strong">{q.sum} cm</span>
               </div>
               <div className="size-bar" aria-hidden="true">
@@ -116,7 +116,7 @@ export function CustomPage() {
               </div>
             </div>
 
-            <ColorPicker legend="สีผิวยาง" colors={RUBBER_COLORS} value={color} onChange={setColor} layout="pills" />
+            <ColorPicker legend={c.colorLegend} colors={colors} value={color} onChange={setColor} layout="pills" />
           </form>
 
           <div aria-live="polite" className="panel quote-card">
@@ -125,29 +125,29 @@ export function CustomPage() {
                 <p className="quote-card__kicker">{q.model}</p>
                 <p className="quote-card__price">{baht(q.price)}</p>
                 <p className="body" style={{ marginTop: 12 }}>
-                  {dims.w} × {dims.l} × {dims.h} cm · {colorName}
+                  {dims.w} × {dims.l} × {dims.h} cm · {c.colorName(colors[color].label)}
                   <br />
-                  {q.rule}
+                  {c.rules[q.rule]}
                 </p>
-                <p className="body" style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6 }}>ผลิตตามสั่ง ใช้เวลาประมาณ 28-35 วัน</p>
+                <p className="body" style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6 }}>{c.leadTime}</p>
                 <button type="button" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 20 }} onClick={addToCart}>
-                  ใส่ตะกร้า · {baht(q.price)}
+                  {c.addToCart(baht(q.price))}
                 </button>
               </>
             ) : (
               <>
-                <p className="quote-card__kicker">ต้องประเมินราคา</p>
-                <p className="num-display" style={{ marginTop: 8, fontWeight: 300, fontSize: 30, lineHeight: 1.2 }}>ขนาดนี้ทีมขอดูแบบก่อน</p>
-                <p className="body" style={{ marginTop: 10 }}>{q.reason} ส่งรายละเอียดมา ทีมจะติดต่อกลับพร้อมราคา</p>
+                <p className="quote-card__kicker">{c.quoteKicker}</p>
+                <p className="num-display" style={{ marginTop: 8, fontWeight: 300, fontSize: 30, lineHeight: 1.2 }}>{c.quoteTitle}</p>
+                <p className="body" style={{ marginTop: 10 }}>{c.quoteBody(reason)}</p>
                 {sent ? (
-                  <p className="tag tag--green tag--md" style={{ marginTop: 18 }}>ส่งคำขอแล้ว ทีมจะติดต่อกลับ</p>
+                  <p className="tag tag--green tag--md" style={{ marginTop: 18 }}>{c.sent}</p>
                 ) : (
                   <form className="stack" style={css({ marginTop: 18, '--gap': '12px' })} onSubmit={sendQuote}>
-                    <label className="field">ชื่อ<input className="input" name="_name" type="text" autoComplete="name" required style={{ height: 48 }} /></label>
-                    <label className="field">เบอร์โทร หรือ LINE ID<input className="input" name="_contact" type="text" required style={{ height: 48 }} /></label>
-                    <label className="field">ใช้ทำกิจกรรมอะไร (ไม่บังคับ)<textarea className="input" name="ใช้ทำกิจกรรม" rows={3} /></label>
+                    <label className="field">{c.name}<input className="input" name="_name" type="text" autoComplete="name" required style={{ height: 48 }} /></label>
+                    <label className="field">{c.contact}<input className="input" name="_contact" type="text" required style={{ height: 48 }} /></label>
+                    <label className="field">{c.activity}<textarea className="input" name="ใช้ทำกิจกรรม" rows={3} /></label>
                     {error && <p role="alert" className="small" style={{ color: '#8e1f0b' }}>{error}</p>}
-                    <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={sending}>{sending ? 'กำลังส่ง…' : 'ส่งคำขอใบเสนอราคา'}</button>
+                    <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={sending}>{sending ? t.common.sending : c.sendQuote}</button>
                   </form>
                 )}
               </>
@@ -156,9 +156,9 @@ export function CustomPage() {
         </section>
 
         <section className="container" style={{ paddingTop: 72, paddingBottom: 96 }}>
-          <h2 className="title title--sm">เงื่อนไขขนาด</h2>
+          <h2 className="title title--sm">{c.conditionsTitle}</h2>
           <div className="auto-grid" style={css({ '--min': '240px', '--gap': '12px', marginTop: 20 })}>
-            {RULES.map((r) => (
+            {c.conditions.map((r) => (
               <div key={r.name} className="outline-card outline-card--sm" style={{ gap: 0 }}>
                 <p className="num-display" style={{ fontWeight: 500, fontSize: 19 }}>{r.name}</p>
                 <p className="body" style={{ marginTop: 6, fontSize: 14, lineHeight: 1.65 }}>{r.body}</p>

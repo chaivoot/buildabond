@@ -1,14 +1,15 @@
 const MAX_BYTES = 4 * 1024 * 1024;
 
 /**
- * Stores an uploaded image and returns its public URL.
+ * Stores an uploaded image and returns its public URL. Throws an Error whose message is an error code
+ * (noFile / fileType / fileSize; see the dictionaries).
  * Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set (connect a Blob store in Vercel → Storage);
  * otherwise falls back to an inline data: URL stored in the database.
  */
 export async function storeImage(file: File, folder: 'products' | 'slips'): Promise<string> {
-  if (!file || file.size === 0) throw new Error('ไม่ได้เลือกไฟล์');
-  if (!file.type.startsWith('image/')) throw new Error('รองรับเฉพาะไฟล์รูปภาพ');
-  if (file.size > MAX_BYTES) throw new Error('ไฟล์ใหญ่เกิน 4 MB');
+  if (!file || file.size === 0) throw new Error('noFile');
+  if (!file.type.startsWith('image/')) throw new Error('fileType');
+  if (file.size > MAX_BYTES) throw new Error('fileSize');
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const { put } = await import('@vercel/blob');

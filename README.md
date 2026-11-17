@@ -25,6 +25,15 @@ Server functions run in Singapore (`sin1`, set in `vercel.json`). Create the Neo
 
 Redeploy after adding variables. Tables are created and filled with the demo content automatically the first time the site talks to an empty database.
 
+## Languages
+
+The storefront is in English and Thai; the admin is Thai only.
+
+- First visit: Thailand (Vercel's `x-vercel-ip-country` header) gets Thai, everyone else English. The choice is kept in the `lang` cookie, and the TH / EN button in the header switches it.
+- URLs stay the same (`/shop`). Middleware (`src/middleware.ts`) serves them from the prebuilt `/en/...` or `/th/...` page, which are also real URLs for search engines (with hreflang links and a bilingual sitemap).
+- UI text lives in `src/i18n/th.ts` and `src/i18n/en.ts`; TypeScript makes sure both have the same keys.
+- Product copy: Thai in the main fields, English in the product's English section in the admin (empty English fields fall back to Thai).
+
 ## Routes
 
 | Path | Page |

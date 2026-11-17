@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition, type ReactNode } from 'react';
 import { CATEGORIES } from '../../data/products';
 import { COLOR_PRESETS } from '../../data/seed';
-import type { CategoryId, Product, ProductDetail, StockStatus } from '../../lib/types';
+import type { CategoryId, Product, ProductDetail, ProductText, StockStatus } from '../../lib/types';
 import { removeProduct, saveProduct, uploadProductImage } from '../../server/actions/admin';
 
 interface Props {
@@ -38,6 +38,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
   const router = useRouter();
   const [p, setP] = useState<Product>(product);
   const [specs, setSpecs] = useState(specsToText(product.detail.specs));
+  const [specsEn, setSpecsEn] = useState(specsToText(product.en?.specs));
   const [preset, setPreset] = useState(presetOf(product));
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -46,6 +47,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
 
   const set = <K extends keyof Product>(k: K, v: Product[K]) => { setP((x) => ({ ...x, [k]: v })); setSaved(false); };
   const setDetail = (d: Partial<ProductDetail>) => { setP((x) => ({ ...x, detail: { ...x.detail, ...d } })); setSaved(false); };
+  const setEn = (d: Partial<ProductText>) => { setP((x) => ({ ...x, en: { ...x.en, ...d } })); setSaved(false); };
   const gallery = p.detail.gallery ?? [];
 
   const upload = async (file: File | undefined): Promise<string | null> => {
@@ -76,6 +78,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
       ...p,
       ...(chosen ? { colors: chosen.colors, colorsLabel: chosen.legend, swatchesLabel: chosen.swatchesLabel } : {}),
       detail: { ...p.detail, specs: textToSpecs(specs) },
+      en: { ...p.en, specs: textToSpecs(specsEn) },
     };
     start(async () => {
       const res = await saveProduct(next, isNew ? null : product.slug).catch((e: Error) => ({ error: e.message }));
@@ -156,6 +159,20 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
             <label className="admin-check"><input type="checkbox" checked={p.cover} onChange={(e) => set('cover', e.target.checked)} />รูปหลักเป็นภาพบรรยากาศ (เต็มกรอบ)</label>
             <label className="admin-check"><input type="checkbox" checked={p.comingSoon} onChange={(e) => set('comingSoon', e.target.checked)} />เร็ว ๆ นี้ (ยังไม่ขาย)</label>
             <label className="admin-check"><input type="checkbox" checked={p.custom} onChange={(e) => set('custom', e.target.checked)} />สั่งทำ (ลิงก์ไปหน้าคำนวณราคา)</label>
+          </div>
+        </section>
+
+        <section className="admin-card" lang="en">
+          <h2>ภาษาอังกฤษ (English)</h2>
+          <p className="small" style={{ marginBottom: 12 }}>แสดงให้ลูกค้าที่เข้าเว็บจากต่างประเทศ หรือเลือก EN ช่องที่ว่างไว้จะใช้ข้อความภาษาไทยแทน</p>
+          <div className="admin-grid">
+            <Field label="Short description" wide><input className="input" value={p.en?.desc ?? ''} onChange={(e) => setEn({ desc: e.target.value })} placeholder={p.th} /></Field>
+            <Field label="Product page subtitle" wide><input className="input" value={p.en?.subtitle ?? ''} onChange={(e) => setEn({ subtitle: e.target.value })} placeholder={p.detail.subtitle} /></Field>
+            <Field label="Price label" hint="e.g. From ฿1,590"><input className="input" value={p.en?.priceLabel ?? ''} onChange={(e) => setEn({ priceLabel: e.target.value })} placeholder={p.priceLabel} /></Field>
+            <Field label="Badge"><input className="input" value={p.en?.badge ?? ''} onChange={(e) => setEn({ badge: e.target.value })} placeholder={p.badge} /></Field>
+            <Field label="Specifications" hint="One per line: Label | Value" wide>
+              <textarea className="input" rows={5} value={specsEn} onChange={(e) => { setSpecsEn(e.target.value); setSaved(false); }} placeholder={'Size | 80 L × 33 W × 1.5 H cm\nWeight | 3.5 kg'} />
+            </Field>
           </div>
         </section>
 

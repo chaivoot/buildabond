@@ -1,31 +1,36 @@
+'use client';
+
 import Link from 'next/link';
 import { css } from '../data/style';
+import { useI18n } from '../i18n/LocaleProvider';
 
 export function SiteFooter() {
+  const { t } = useI18n();
+  const f = t.footer;
   return (
     <footer className="on-dark">
       <div className="container" style={{ paddingTop: 72, paddingBottom: 40, paddingInline: 20 }}>
-        <p className="display" style={{ fontSize: 'clamp(34px, 7vw, 64px)', lineHeight: 1.1, letterSpacing: 0 }}>
+        <p className="display" lang="en" style={{ fontSize: 'clamp(34px, 7vw, 64px)', lineHeight: 1.1, letterSpacing: 0 }}>
           Build a Bond.
           <br />
           Move, Play &amp; Grow Together.
         </p>
         <div className="auto-grid footer-cols" style={css({ '--min': '150px', '--gap': '28px', marginTop: 48, fontSize: 15 })}>
           <div className="footer-col">
-            <p>สินค้า</p>
+            <p>{f.products}</p>
             <Link href="/shop?cat=sb">Strength &amp; Balance</Link>
             <Link href="/shop?cat=ip">Interactive Play</Link>
             <Link href="/shop?cat=tug">Tug Toys</Link>
-            <Link href="/custom">สั่งทำขนาดพิเศษ</Link>
+            <Link href="/custom">{f.customSize}</Link>
           </div>
           <div className="footer-col">
-            <p>ช่วยเหลือ</p>
-            <Link href="/track">ติดตามออร์เดอร์</Link>
-            <Link href="/products/place-board#faq">การจัดส่ง</Link>
-            <Link href="/business">สำหรับธุรกิจ</Link>
+            <p>{f.help}</p>
+            <Link href="/track">{f.track}</Link>
+            <Link href="/products/place-board#faq">{f.shipping}</Link>
+            <Link href="/business">{f.business}</Link>
           </div>
           <div className="footer-col">
-            <p>ติดต่อเรา</p>
+            <p>{f.contact}</p>
             {/* TODO: replace with the shop's real social URLs */}
             <a href="https://line.me/">LINE</a>
             <a href="https://www.facebook.com/">Facebook</a>

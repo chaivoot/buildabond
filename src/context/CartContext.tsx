@@ -1,20 +1,11 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { CartLineInput } from '../lib/pricing';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { parseCart, type CartItem } from '../lib/cartItem';
 import { shippingFee, shippingTier } from '../lib/shipping';
 import { useShopSettings } from './SettingsContext';
 
-export interface CartItem extends CartLineInput {
-  id: string;
-  name: string;
-  /** Selected options, e.g. "ฟ้า · แม่เหล็ก 4 ชิ้น" */
-  opt: string;
-  status: string;
-  unitPrice: number;
-  kg: number;
-  img: string;
-}
+export type { CartItem };
 
 interface CartState {
   items: CartItem[];
@@ -34,23 +25,48 @@ interface CartState {
 }
 
 const MAX_QTY = 9;
+const STORAGE_KEY = 'bb-cart-v2';
 
-/** Demo contents so the cart and checkout have something to show. Prices match the seed catalogue. */
-const DEMO_CART: CartItem[] = [
-  { id: 'place-board|ฟ้า · แม่เหล็ก 4 ชิ้น', slug: 'place-board', color: 0, magnets: 4, name: 'Place Board', opt: 'ฟ้า · แม่เหล็ก 4 ชิ้น', status: 'พร้อมส่ง · ทำผิวยาง 3-5 วัน', unitPrice: 2590, kg: 3.5, img: '/images/place-board.jpg', qty: 1 },
-  { id: 'target-box|ส้ม', slug: 'target-box', color: 1, name: 'Target Box', opt: 'ส้ม', status: 'พร้อมส่ง · ทำผิวยาง 3-5 วัน', unitPrice: 1590, kg: 2.6, img: '/images/target-box.jpg', qty: 1 },
-  { id: 'flirt-pole|ชมพู', slug: 'flirt-pole', color: 2, name: 'Flirt Pole', opt: 'ชมพู', status: 'พร้อมส่ง', unitPrice: 790, kg: 0.6, img: '/images/flirt-pole.jpg', qty: 1 },
-];
+/** Demo contents shown until the visitor changes the cart. Prices match the seed catalogue. */
+const lineId = (i: Omit<CartItem, 'id' | 'qty'>) =>
+  [i.slug, i.color ?? 0, i.magnets ?? 0, i.custom ? `${i.custom.w}x${i.custom.l}x${i.custom.h}` : ''].join('|');
+
+const DEMO_CART: CartItem[] = ([
+  { slug: 'place-board', color: 0, magnets: 4, colorTh: 'ฟ้า', name: 'Place Board', kind: 'readyFinish', unitPrice: 2590, kg: 3.5, img: '/images/place-board.jpg', qty: 1 },
+  { slug: 'target-box', color: 1, colorTh: 'ส้ม', name: 'Target Box', kind: 'readyFinish', unitPrice: 1590, kg: 2.6, img: '/images/target-box.jpg', qty: 1 },
+  { slug: 'flirt-pole', color: 2, colorTh: 'ชมพู', name: 'Flirt Pole', kind: 'ready', unitPrice: 790, kg: 0.6, img: '/images/flirt-pole.jpg', qty: 1 },
+] as Omit<CartItem, 'id'>[]).map((i) => ({ ...i, id: lineId(i) }));
 
 const CartContext = createContext<CartState | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const settings = useShopSettings();
   const [items, setItems] = useState<CartItem[]>(DEMO_CART);
+  const [loaded, setLoaded] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // The cart lives in the browser so it survives reloads and language switches.
+  useEffect(() => {
+    try {
+      const saved = parseCart(localStorage.getItem(STORAGE_KEY));
+      if (saved) setItems(saved);
+    } catch {
+      /* storage blocked: keep the in-memory cart */
+    }
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      /* ignore */
+    }
+  }, [items, loaded]);
+
   const add = useCallback<CartState['add']>((item, qty = 1) => {
-    const id = `${item.slug}|${item.opt}`;
+    const id = lineId(item);
     setItems((prev) => {
       const hit = prev.find((i) => i.id === id);
       if (hit) return prev.map((i) => (i.id === id ? { ...i, qty: Math.min(MAX_QTY, i.qty + qty) } : i));

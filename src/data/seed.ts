@@ -2,7 +2,7 @@
  * Demo content loaded into an empty database on first run.
  * After that, everything here is edited from /admin.
  */
-import type { ColorOption, Order, Product, ShopRequest, ShopSettings } from '../lib/types';
+import type { ColorOption, Order, Product, ProductText, ShopRequest, ShopSettings } from '../lib/types';
 
 export const RUBBER_COLORS: ColorOption[] = [
   { label: 'ฟ้า', name: 'ฟ้า Sky Blue', swatch: '#5FAEDB' },
@@ -31,9 +31,9 @@ export const COLOR_PRESETS: { id: string; label: string; colors: ColorOption[]; 
 
 const rubber = { colors: RUBBER_COLORS, colorsLabel: 'สีผิวยาง', swatchesLabel: 'สีผิวยาง ฟ้า ส้ม ผสม' };
 const none = { colors: [], colorsLabel: '', swatchesLabel: '' };
-const base = { cover: false, badge: '', comingSoon: false, custom: false, magnets: false, sku: '', stock: 'ready' as const, visible: true, detail: {} };
+const base = { cover: false, badge: '', comingSoon: false, custom: false, magnets: false, sku: '', stock: 'ready' as const, visible: true, detail: {}, en: {} };
 
-type SeedProduct = Omit<Product, 'sort'>;
+type SeedProduct = Omit<Product, 'sort' | 'en'> & { en?: ProductText };
 
 const list: SeedProduct[] = [
   {
@@ -93,10 +93,64 @@ const list: SeedProduct[] = [
   { ...base, ...none, slug: 'rabbit-dummy', cat: 'tug', name: 'Rabbit Dummy', th: 'หนัก 500 กรัม ขนกระต่ายแท้', priceLabel: '฿1,550', price: 1550, kg: 0.5, img: '/images/rabbit-dummy.jpg' },
 ];
 
-export const SEED_PRODUCTS: Product[] = list.map((p, i) => ({ ...p, sort: (i + 1) * 10 }));
+/** English copy, by product slug. */
+export const SEED_EN: Record<string, ProductText> = {
+  'place-board': {
+    desc: 'Board, 80×33×1.5 cm',
+    subtitle: 'Board, 80 × 33 × 1.5 cm · SKU 0101',
+    story: {
+      title: 'A spot your dog understands right away',
+      body: 'Wide enough to sit, stand or lie down comfortably. A clear target for practising Place and Stay, at home or out in the field.',
+      alt: 'Blue Place Board on the lawn next to an Oct Box',
+    },
+    moves: [
+      { tag: 'Obedience Training', tone: 'tag--sky', title: 'Place & Stay', body: 'Send your dog onto the board and have them wait there. Slowly build up time and distance.' },
+      { tag: 'Obedience Training', tone: 'tag--sky', title: 'Settle', body: 'Make the board a place to relax, lying down calmly even with distractions around.' },
+      { tag: 'Movement Puzzles', tone: 'tag--orange', title: 'Back-up', body: 'Back onto the board one leg at a time to build hind-leg awareness.' },
+      { tag: 'Canine Fitness', tone: 'tag--sand', title: 'Plank Walk', body: 'Bridge it across Target Boxes and walk slowly to the end of the board.' },
+    ],
+    specs: [
+      ['SKU', '0101'],
+      ['Size', '80 L × 33 W × 1.5 H cm'],
+      ['Structure', 'Export-grade rubberwood'],
+      ['Surface', 'Playground-grade EPDM rubber, non-slip texture'],
+      ['Impact rating', 'Up to 200 kg'],
+      ['Colours', 'Sky Blue / Orange / 50:50 blue-orange mix'],
+      ['Weight', '[weight] kg'],
+    ],
+    faq: [
+      {
+        q: 'What size and age of dog is it for?',
+        a: 'It takes impacts of up to 200 kg and suits puppies through to senior dogs. Start with it flat on the floor, then add a base once your dog is confident. For senior dogs or dogs with joint problems, check with your vet before starting new moves.',
+      },
+      { q: 'How many magnets do I need?', a: 'Magnets are ฿100 each. The base you pair it with needs magnets too. Recommended number: [number].' },
+    ],
+    galleryAlts: [
+      'Cocker spaniel standing on a blue Place Board in a field',
+      'Underside of the board with magnets fitted',
+      'Place Board with an Oct Box and Target Box',
+      'Close-up of the EPDM rubber surface',
+    ],
+  },
+  'target-box': { desc: '6 / 10 cm high', priceLabel: 'From ฿1,590' },
+  'slant-box': { desc: '15° / 20° incline', priceLabel: 'From ฿1,590' },
+  'oct-box': { desc: 'Octagonal base, 16 cm high, with Cavaletti holes' },
+  'narrow-target': { desc: '25 / 35 / 45 cm', priceLabel: 'From ฿390' },
+  'jump-box': { desc: 'Jump box, made to your size', priceLabel: 'From ฿2,590', badge: 'Custom' },
+  platform: { desc: 'Platform, made to your size', priceLabel: 'From ฿2,990', badge: 'Custom' },
+  wobbler: { desc: 'Wobble board, 4.5 / 9.5 cm', priceLabel: 'Notify me when available', badge: 'Coming soon' },
+  'flirt-pole': { desc: 'Sizes S / M, lures in 3 colours', priceLabel: 'From ฿790' },
+  'bungee-pocket': { desc: 'Sheepskin with a bungee ball, easy to carry' },
+  'sheepskin-bungee': { desc: '58 / 62 cm long, for dogs who pull hard' },
+  'sheepskin-chaser': { desc: '112 cm long, suits all breeds' },
+  'rabbitskin-chaser': { desc: '118 cm long with a squeaker inside' },
+  'rabbit-dummy': { desc: '500 g, real rabbit fur' },
+};
+
+export const SEED_PRODUCTS: Product[] = list.map((p, i) => ({ ...p, sort: (i + 1) * 10, en: SEED_EN[p.slug] ?? {} }));
 
 export const SEED_SETTINGS: ShopSettings = {
-  bank: { name: 'ธนาคารกรุงไทย (KTB)', number: '539-1-36496-5', holder: 'Mrs. Natigarn Suwannapet' },
+  bank: { name: 'ธนาคารกรุงไทย (KTB)', nameEn: 'Krungthai Bank (KTB)', number: '539-1-36496-5', holder: 'Mrs. Natigarn Suwannapet' },
   promptpay: '',
   magnetPrice: 100,
   maxMagnets: 6,

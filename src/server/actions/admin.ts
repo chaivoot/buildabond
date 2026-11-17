@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { th } from '../../i18n/th';
 import { checkPassword, createSessionToken, SESSION_COOKIE, SESSION_DAYS, verifySessionToken } from '../../lib/auth';
 import type { OrderStatus, Product, RequestStatus, ShopSettings } from '../../lib/types';
 import { setOrderStatus, shipOrder } from '../orders';
@@ -55,7 +56,8 @@ export async function uploadProductImage(form: FormData): Promise<{ url?: string
   try {
     return { url: await storeImage(form.get('file') as File, 'products') };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ' };
+    const code = e instanceof Error ? (e.message as keyof typeof th.errors) : 'uploadFailed';
+    return { error: th.errors[code] ?? th.errors.uploadFailed };
   }
 }
 
