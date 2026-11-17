@@ -21,6 +21,8 @@ Product pages are prerendered at build time with their own title, description an
 | Admin password | Environment variable `ADMIN_PASSWORD` | `/admin` can't be opened |
 | Site URL | `NEXT_PUBLIC_SITE_URL`, once a custom domain is attached | Link previews and the sitemap use the `.vercel.app` domain |
 
+Server functions run in Singapore (`sin1`, set in `vercel.json`). Create the Neon database in Singapore too (AWS ap-southeast-1) so queries stay in the same region.
+
 Redeploy after adding variables. Tables are created and filled with the demo content automatically the first time the site talks to an empty database.
 
 ## Routes
