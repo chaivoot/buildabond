@@ -152,6 +152,21 @@ async function linkOrders(d: Driver) {
   );
 }
 
+async function normalizeSavedPhones(d: Driver) {
+  const { formatPhone, isThaiPhone, normalizePhone } = await import('../lib/phone');
+  for (const o of await d.query<{ id: string; phone: string }>(`SELECT id, phone FROM orders`)) {
+    const fixed = isThaiPhone(o.phone) ? formatPhone(o.phone) : o.phone;
+    if (fixed !== o.phone) await d.query(`UPDATE orders SET phone = $2 WHERE id = $1`, [o.id, fixed]);
+  }
+  for (const c of await d.query<{ id: string; phone: string }>(`SELECT id, phone FROM customers`)) {
+    const fixed = normalizePhone(c.phone);
+    if (fixed !== c.phone) {
+      // Skip if another customer already has this number (unique); the admin can merge by hand.
+      await d.query(`UPDATE customers SET phone = $2 WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM customers WHERE phone = $2)`, [c.id, fixed]);
+    }
+  }
+}
+
 /** Runs `fn` once per database, the first time a server sees the marker missing. */
 async function once(d: Driver, marker: string, fn: () => Promise<void>) {
   const claimed = await d.query(`INSERT INTO settings (key, value) VALUES ($1, 'true') ON CONFLICT (key) DO NOTHING RETURNING key`, [marker]);
@@ -177,6 +192,8 @@ async function migrate(d: Driver) {
   });
   // Link orders placed before customer history existed, by email or phone.
   await once(d, 'migration:customer-links-1', () => linkOrders(d));
+  // Phone numbers saved before they were normalised (e.g. "+660818890911"): store them as 081-234-5678 / digits.
+  await once(d, 'migration:phones-1', () => normalizeSavedPhones(d));
   // English copy for products seeded before the site was bilingual (only where none has been entered).
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
