@@ -15,7 +15,7 @@ const BENEFITS = [
 ];
 
 const CATEGORY_CARDS = [
-  { to: '/shop?cat=sb', bg: 'var(--sky-tint)', img: img.dogsOnBoxes, alt: 'หมาสองตัวยืนบน Target Box และ Oct Box', title: 'Strength & Balance', body: 'แผ่นกระดาน กล่องยืน ฐานเอียง ฐานแปดเหลี่ยม ผลิตเองทุกชิ้น', from: 'เริ่ม ฿390' },
+  { to: '/shop?cat=sb', bg: 'var(--sky-tint)', img: img.dogsOnBoxes, alt: 'หมาสองตัวยืนบน Target Box และ Oct Box', title: 'Strength & Balance', body: 'แผ่นกระดาน Target Box Slant Box ฐานแปดเหลี่ยม ผลิตเองทุกชิ้น', from: 'เริ่ม ฿390' },
   { to: '/shop?cat=ip', bg: 'var(--orange-tint)', img: img.beagleFlirt, alt: 'บีเกิ้ลวิ่งไล่เหยื่อ Flirt Pole บนสนามหญ้า', title: 'Interactive Play', body: 'Flirt Pole ไซส์ S และ M เหยื่อ 3 สี เหลือง ฟ้า ชมพู ปลุกสัญชาตญาณการไล่ล่า', from: 'เริ่ม ฿790' },
   { to: '/shop?cat=tug', bg: 'var(--sand)', img: img.sheepskinBungee, alt: 'Sheepskin Bungee สองแบบ', title: 'Tug Toys', body: 'ของเล่นดึงจากขนแกะและขนกระต่ายแท้ สำหรับหมาที่ชอบกัด ชอบดึงแรง ๆ', from: 'เริ่ม ฿1,450', cutout: true },
 ];
@@ -130,7 +130,7 @@ export function HomePage() {
               </div>
               <p className="steps__n">ขั้นที่ 1</p>
               <h3>เลือกฐาน</h3>
-              <p className="body">วางกล่องยืน Target Box หรือฐานเอียง Slant Box ตามท่าที่อยากฝึก</p>
+              <p className="body">วาง Target Box หรือ Slant Box ตามท่าที่อยากฝึก</p>
             </li>
             <li>
               <div className="steps__media">
