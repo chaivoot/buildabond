@@ -66,7 +66,7 @@ const list: SeedProduct[] = [
         ['ผิวหน้า', 'ยาง EPDM เกรดสนามเด็กเล่น ลายกันลื่น'],
         ['รับแรงกระแทก', 'สูงสุด 200 กก.'],
         ['สี', 'ฟ้า Sky Blue / ส้ม / ผสมฟ้า-ส้ม 50:50'],
-        ['น้ำหนัก', '[ระบุน้ำหนัก] กก.'],
+        ['น้ำหนัก', '{kg} กก.'],
       ],
       related: ['target-box', 'slant-box', 'oct-box', 'narrow-target'],
       faq: [
@@ -74,7 +74,7 @@ const list: SeedProduct[] = [
           q: 'ใช้ได้กับหมาขนาดไหน อายุเท่าไร',
           a: 'รับแรงกระแทกได้ถึง 200 กก. ใช้ได้ตั้งแต่ลูกหมาจนหมาสูงวัย เริ่มจากวางราบกับพื้นก่อน แล้วค่อยต่อกับฐานเมื่อหมามั่นใจ หมาสูงวัยหรือมีปัญหาข้อ ควรปรึกษาสัตวแพทย์ก่อนเริ่มท่าใหม่',
         },
-        { q: 'ต้องใส่แม่เหล็กกี่ชิ้น', a: 'แม่เหล็กราคาชิ้นละ ฿100 ฐานที่จะใช้คู่กันต้องสั่งแม่เหล็กด้วย จำนวนที่แนะนำ [ระบุจำนวน]' },
+        { q: 'ต้องใส่แม่เหล็กกี่ชิ้น', a: 'Place Board ใช้แม่เหล็ก {magnets} ชิ้น ติดใต้แผ่น เลือกเพิ่มได้ตอนใส่ตะกร้า ส่วน Target Box และ Slant Box ที่จะใช้คู่กันก็เลือกเพิ่มแม่เหล็กได้เช่นกัน แม่เหล็กราคาชิ้นละ {magnetPrice}' },
       ],
     },
   },
@@ -116,14 +116,14 @@ export const SEED_EN: Record<string, ProductText> = {
       ['Surface', 'Playground-grade EPDM rubber, non-slip texture'],
       ['Impact rating', 'Up to 200 kg'],
       ['Colours', 'Sky Blue / Orange / 50:50 blue-orange mix'],
-      ['Weight', '[weight] kg'],
+      ['Weight', '{kg} kg'],
     ],
     faq: [
       {
         q: 'What size and age of dog is it for?',
         a: 'It takes impacts of up to 200 kg and suits puppies through to senior dogs. Start with it flat on the floor, then add a base once your dog is confident. For senior dogs or dogs with joint problems, check with your vet before starting new moves.',
       },
-      { q: 'How many magnets do I need?', a: 'Magnets are ฿100 each. The base you pair it with needs magnets too. Recommended number: [number].' },
+      { q: 'How many magnets do I need?', a: 'The Place Board uses {magnets} magnets fitted underneath; add them when you put it in your cart. Target Box and Slant Box can have magnets added too. Magnets are {magnetPrice} each.' },
     ],
     galleryAlts: [
       'Cocker spaniel standing on a blue Place Board in a field',

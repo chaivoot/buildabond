@@ -18,6 +18,7 @@ import { tiersSummary } from '../lib/shipping';
 import { css } from '../data/style';
 import { useI18n } from '../i18n/LocaleProvider';
 import { stockKind } from '../lib/cartItem';
+import { fillProductTokens } from '../lib/productTokens';
 import './ProductPage.css';
 
 /** The route (`app/products/[slug]/page.tsx`) only renders this for sellable products. */
@@ -41,6 +42,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
   const total = priced?.unitPrice ?? p.price;
   const colorName = hasColors ? p.colors[color].name : '';
   const leadText = inStock ? pt.leadReady : pt.leadPreorder;
+  const fill = (text: string) => fillProductTokens(text, { kg: p.kg, magnets: p.magnetCount, magnetPrice: settings.magnetPrice });
   const tiers = tiersSummary(settings.shipping, t.shippingTiers);
   const faq = [...(d.faq ?? []), ...pt.sharedFaq(tiers)];
 
@@ -187,7 +189,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
               {d.specs.map(([k, v]) => (
                 <div key={k}>
                   <dt>{k}</dt>
-                  <dd>{v}</dd>
+                  <dd>{fill(v)}</dd>
                 </div>
               ))}
             </dl>
@@ -208,8 +210,8 @@ export function ProductPage({ product: p, related }: { product: Product; related
           <div className="faq" style={{ marginTop: 20 }}>
             {faq.map((f, i) => (
               <details key={f.q} open={i === 0}>
-                <summary>{f.q}</summary>
-                <p>{f.a}</p>
+                <summary>{fill(f.q)}</summary>
+                <p>{fill(f.a)}</p>
               </details>
             ))}
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { CheckIcon, GymIcon, ShopIcon, TrainerIcon, VetIcon } from '../components/Icons';
 import { SiteHeader } from '../components/SiteHeader';
@@ -134,7 +135,8 @@ export function BusinessPage() {
                   </div>
                 </fieldset>
                 <label className="field span-all">{b.fields.details}<textarea className="input" name="รายละเอียด" rows={4} placeholder={b.fields.detailsPlaceholder} /></label>
-                {error && <p role="alert" className="small span-all" style={{ color: '#8e1f0b' }}>{error}</p>}
+                <p className="small span-all">{t.common.formConsent} <Link href="/privacy" target="_blank">{t.common.privacyLink}</Link></p>
+                    {error && <p role="alert" className="small span-all" style={{ color: '#8e1f0b' }}>{error}</p>}
                 <button type="submit" className="btn btn--primary btn--lg span-all" disabled={sending}>{sending ? t.common.sending : b.submit}</button>
               </form>
             )}
