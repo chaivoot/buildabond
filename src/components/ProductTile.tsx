@@ -1,10 +1,14 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { SIZES } from '../data/sizes';
 import { categoryLabel, productHref, type Product } from '../data/products';
+import { useI18n } from '../i18n/LocaleProvider';
 import './ProductTile.css';
 
 export function ProductTile({ p }: { p: Product }) {
+  const { t } = useI18n();
   return (
     <Link href={productHref(p)} className="product-tile">
       <div className="product-tile__media tile-bg">
@@ -17,7 +21,7 @@ export function ProductTile({ p }: { p: Product }) {
             className={p.cover ? 'product-tile__img--cover' : 'product-tile__img--cutout cutout'}
           />
         )}
-        {p.comingSoon && <span className="product-tile__soon">เร็ว ๆ นี้</span>}
+        {p.comingSoon && <span className="product-tile__soon">{t.shop.comingSoon}</span>}
         {p.badge && <span className="tag tag--white product-tile__badge">{p.badge}</span>}
       </div>
       <div className="product-tile__body">

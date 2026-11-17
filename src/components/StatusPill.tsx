@@ -12,7 +12,8 @@ const TONE: Record<OrderStatus, string> = {
   'ยกเลิก': 'tag--sand',
 };
 
-export function StatusPill({ status, shippedTone = 'tag--stone' }: { status: OrderStatus; shippedTone?: string }) {
+/** `label` overrides the text (the storefront passes a translated status). */
+export function StatusPill({ status, label, shippedTone = 'tag--stone' }: { status: OrderStatus; label?: string; shippedTone?: string }) {
   const tone = status === 'จัดส่งแล้ว' ? shippedTone : TONE[status];
-  return <span className={`tag ${tone}`} style={{ flex: 'none' }}>{status}</span>;
+  return <span className={`tag ${tone}`} style={{ flex: 'none' }}>{label ?? status}</span>;
 }

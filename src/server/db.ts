@@ -1,4 +1,4 @@
-import { SEED_ORDERS, SEED_PRODUCTS, SEED_REQUESTS, SEED_SETTINGS } from '../data/seed';
+import { SEED_EN, SEED_ORDERS, SEED_PRODUCTS, SEED_REQUESTS, SEED_SETTINGS } from '../data/seed';
 
 /**
  * Tiny SQL layer.
@@ -91,6 +91,7 @@ const SCHEMA = [
     data jsonb NOT NULL DEFAULT '{}'
   )`,
   `CREATE SEQUENCE IF NOT EXISTS order_seq START 43`,
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS en jsonb NOT NULL DEFAULT '{}'`,
 ];
 
 const json = (v: unknown) => JSON.stringify(v);
@@ -104,24 +105,40 @@ const CONTENT_FIXES: [slug: string, from: string, to: string][] = [
   ['slant-box', 'ฐานเอียง 15° / 20°', 'มุมเอียง 15° / 20°'],
 ];
 
+/** Runs `fn` once per database, the first time a server sees the marker missing. */
+async function once(d: Driver, marker: string, fn: () => Promise<void>) {
+  const claimed = await d.query(`INSERT INTO settings (key, value) VALUES ($1, 'true') ON CONFLICT (key) DO NOTHING RETURNING key`, [marker]);
+  if (claimed.length) await fn();
+}
+
 async function migrate(d: Driver) {
   for (const stmt of SCHEMA) await d.query(stmt);
-  for (const [slug, from, to] of CONTENT_FIXES) {
-    await d.query(`UPDATE products SET th = $3 WHERE slug = $1 AND th = $2`, [slug, from, to]);
-  }
+  await once(d, 'migration:names-1', async () => {
+    for (const [slug, from, to] of CONTENT_FIXES) {
+      await d.query(`UPDATE products SET th = $3 WHERE slug = $1 AND th = $2`, [slug, from, to]);
+    }
+  });
+  // English copy for products seeded before the site was bilingual (only where none has been entered).
+  await once(d, 'migration:en-1', async () => {
+    for (const [slug, en] of Object.entries(SEED_EN)) {
+      await d.query(`UPDATE products SET en = $2 WHERE slug = $1 AND en = '{}'::jsonb`, [slug, json(en)]);
+    }
+  });
 
   // Seed exactly once: whoever inserts the marker row does the seeding.
   const claimed = await d.query(`INSERT INTO settings (key, value) VALUES ('seeded', 'true') ON CONFLICT (key) DO NOTHING RETURNING key`);
   if (claimed.length === 0) return;
+  // A fresh database gets the current seed, so the one-off content migrations don't apply.
+  await d.query(`INSERT INTO settings (key, value) VALUES ('migration:names-1', 'true'), ('migration:en-1', 'true') ON CONFLICT (key) DO NOTHING`);
 
   await d.query(`INSERT INTO settings (key, value) VALUES ('shop', $1) ON CONFLICT (key) DO NOTHING`, [json(SEED_SETTINGS)]);
   for (const p of SEED_PRODUCTS) {
     await d.query(
       `INSERT INTO products (slug, sort, cat, name, th, price_label, price, kg, img, cover, badge, coming_soon, custom, colors,
-        colors_label, swatches_label, magnets, sku, stock, visible, detail)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) ON CONFLICT (slug) DO NOTHING`,
+        colors_label, swatches_label, magnets, sku, stock, visible, detail, en)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) ON CONFLICT (slug) DO NOTHING`,
       [p.slug, p.sort, p.cat, p.name, p.th, p.priceLabel, p.price, p.kg, p.img, p.cover, p.badge, p.comingSoon, p.custom, json(p.colors),
-        p.colorsLabel, p.swatchesLabel, p.magnets, p.sku, p.stock, p.visible, json(p.detail)],
+        p.colorsLabel, p.swatchesLabel, p.magnets, p.sku, p.stock, p.visible, json(p.detail), json(p.en)],
     );
   }
   for (const o of SEED_ORDERS) {

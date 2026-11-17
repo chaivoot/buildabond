@@ -17,22 +17,15 @@ import { useShopSettings } from '../context/SettingsContext';
 import { priceLine } from '../lib/pricing';
 import { tiersSummary } from '../lib/shipping';
 import { css } from '../data/style';
+import { useI18n } from '../i18n/LocaleProvider';
+import { stockKind } from '../lib/cartItem';
 import './ProductPage.css';
-
-const SHARED_FAQ = (shipping: string) => [
-  {
-    q: 'จัดส่งกี่วัน ค่าส่งเท่าไร',
-    a: `สินค้าพร้อมส่งประกอบเสร็จแล้ว ใช้เวลาทำผิวยางสีที่เลือก 3-5 วัน สินค้าพรีออเดอร์ใช้เวลาผลิต 28-35 วัน จัดส่งผ่านไปรษณีย์ไทยหรือนิ่มเอ็กซ์เพรส และแจ้งเลขพัสดุภายใน 1 วันหลังส่ง ค่าส่งคิดตามน้ำหนักรวม ${shipping}`,
-  },
-  {
-    q: 'ถ้าสินค้าเสียหายระหว่างขนส่ง',
-    a: 'ถ่ายรูปความเสียหายแล้วแจ้งเราภายใน 24 ชั่วโมงหลังได้รับ เราจะลดราคาให้หากเสียหายเล็กน้อยและยังใช้งานได้ หรือเปลี่ยนชิ้นใหม่หากใช้งานไม่ได้',
-  },
-];
 
 /** The route (`app/products/[slug]/page.tsx`) only renders this for sellable products. */
 export function ProductPage({ product: p, related }: { product: Product; related: Product[] }) {
   const d = p.detail;
+  const { t } = useI18n();
+  const pt = t.product;
   const settings = useShopSettings();
   const { add, openDrawer } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
@@ -46,12 +39,23 @@ export function ProductPage({ product: p, related }: { product: Product; related
   const priced = priceLine(line, p, settings);
   const total = priced?.unitPrice ?? p.price;
   const colorName = hasColors ? p.colors[color].name : '';
-  const leadText = inStock ? 'สินค้าประกอบแล้ว ทำผิวยางสีที่เลือก 3-5 วันก่อนจัดส่ง' : 'ผลิตตามสั่ง ใช้เวลาประมาณ 28-35 วัน';
-  const faq = [...(d.faq ?? []), ...SHARED_FAQ(tiersSummary(settings.shipping))];
+  const leadText = inStock ? pt.leadReady : pt.leadPreorder;
+  const tiers = tiersSummary(settings.shipping, t.shippingTiers);
+  const faq = [...(d.faq ?? []), ...pt.sharedFaq(tiers)];
 
   const addToCart = () => {
     if (!priced) return;
-    add({ ...line, name: priced.name, opt: priced.opt, status: priced.status, unitPrice: priced.unitPrice, kg: priced.kg, img: p.img });
+    const c = hasColors ? p.colors[color] : undefined;
+    add({
+      ...line,
+      magnets: p.magnets ? magnets : 0,
+      colorTh: c ? c.labelTh ?? c.label : undefined,
+      name: p.name,
+      kind: stockKind(p),
+      unitPrice: priced.unitPrice,
+      kg: priced.kg,
+      img: p.img,
+    });
     openDrawer();
   };
 
@@ -62,15 +66,15 @@ export function ProductPage({ product: p, related }: { product: Product; related
         <div className="container buy-bar__inner">
           <div className="buy-bar__text">
             <span className="buy-bar__name">{p.name}{colorName ? ` · ${colorName}` : ''}</span>
-            <span className="small">{baht(total)}{magnets ? ` · แม่เหล็ก ${magnets} ชิ้น` : ''}</span>
+            <span className="small">{baht(total)}{magnets ? ` · ${pt.magnetsShort(magnets)}` : ''}</span>
           </div>
-          <button type="button" className="btn btn--primary btn--sm" style={{ fontSize: 15, padding: '0 20px' }} onClick={addToCart}>ใส่ตะกร้า</button>
+          <button type="button" className="btn btn--primary btn--sm" style={{ fontSize: 15, padding: '0 20px' }} onClick={addToCart}>{pt.addToCart}</button>
         </div>
       </div>
 
       <main>
         <nav aria-label="breadcrumb" className="container" style={{ paddingTop: 14, fontSize: 13, color: 'var(--ink-3)' }}>
-          <Link href="/shop" style={{ color: 'var(--ink-2)' }}>สินค้าทั้งหมด</Link> /{' '}
+          <Link href="/shop" style={{ color: 'var(--ink-2)' }}>{pt.breadcrumbAll}</Link> /{' '}
           <Link href={`/shop?cat=${p.cat}`} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>{categoryLabel(p.cat)}</Link>
         </nav>
 
@@ -82,7 +86,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
             {gallery.length > 1 && (
               <div className="pdp-thumbs">
                 {gallery.map((g, i) => (
-                  <button key={i} type="button" aria-label={`ดูรูปที่ ${i + 1}`} aria-pressed={i === imgIdx} onClick={() => setImgIdx(i)}>
+                  <button key={i} type="button" aria-label={pt.viewImage(i + 1)} aria-pressed={i === imgIdx} onClick={() => setImgIdx(i)}>
                     <Image src={g.src} alt="" fill sizes="140px" />
                   </button>
                 ))}
@@ -93,9 +97,9 @@ export function ProductPage({ product: p, related }: { product: Product; related
           <div className="stack" style={css({ flex: '1 1 360px', '--gap': '22px' })}>
             <div>
               {inStock ? (
-                <span className="tag tag--green tag--md"><CheckIcon size={14} strokeWidth={2.2} />พร้อมส่ง</span>
+                <span className="tag tag--green tag--md"><CheckIcon size={14} strokeWidth={2.2} />{pt.inStock}</span>
               ) : (
-                <span className="tag tag--orange tag--md"><ClockIcon />พรีออเดอร์</span>
+                <span className="tag tag--orange tag--md"><ClockIcon />{pt.preorder}</span>
               )}
               <h1 className="pdp-title">{p.name}</h1>
               <p className="muted" style={{ marginTop: 6, fontSize: 16 }}>{d.subtitle || p.th}</p>
@@ -103,23 +107,23 @@ export function ProductPage({ product: p, related }: { product: Product; related
               <p className="small" style={{ marginTop: 6, fontSize: 14 }}>{leadText}</p>
             </div>
 
-            {hasColors && <ColorPicker legend={p.colorsLabel || 'สี'} colors={p.colors} value={color} onChange={setColor} />}
+            {hasColors && <ColorPicker legend={p.colorsLabel || pt.colorFallback} colors={p.colors} value={color} onChange={setColor} />}
 
             {p.magnets && (
               <div className="row-between">
                 <div>
-                  <p className="strong" style={{ fontSize: 15 }}>แม่เหล็กใต้แผ่น</p>
-                  <p className="small" style={{ marginTop: 2 }}>ชิ้นละ {baht(settings.magnetPrice)} ยึดกับ Target Box และ Slant Box</p>
+                  <p className="strong" style={{ fontSize: 15 }}>{pt.magnetsTitle}</p>
+                  <p className="small" style={{ marginTop: 2 }}>{pt.magnetsHint(baht(settings.magnetPrice))}</p>
                 </div>
-                <QtyStepper value={magnets} onChange={setMagnets} min={0} max={settings.maxMagnets} decLabel="ลดแม่เหล็ก" incLabel="เพิ่มแม่เหล็ก" />
+                <QtyStepper value={magnets} onChange={setMagnets} min={0} max={settings.maxMagnets} decLabel={pt.magnetsDec} incLabel={pt.magnetsInc} />
               </div>
             )}
 
             <div className="stack">
-              <button type="button" className="btn btn--primary btn--lg btn--block" onClick={addToCart}>ใส่ตะกร้า · {baht(total)}</button>
+              <button type="button" className="btn btn--primary btn--lg btn--block" onClick={addToCart}>{pt.addToCart} · {baht(total)}</button>
               <p className="small" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <TruckIcon style={{ flex: 'none', marginTop: 1 }} />
-                ค่าส่งคิดตามน้ำหนักรวมของออร์เดอร์ {tiersSummary(settings.shipping)}
+                {pt.shippingNote(tiers)}
               </p>
             </div>
           </div>
@@ -138,24 +142,22 @@ export function ProductPage({ product: p, related }: { product: Product; related
         {!hasColors || p.cat !== 'sb' ? null : (
           <section className="container section--lg split split--center" style={{ gap: '28px 48px' }}>
             <div>
-              <p className="eyebrow" style={{ marginBottom: 10 }}>วัสดุ</p>
-              <h2 className="title">ยางเกรดสนามเด็กเล่น บนไม้ยางพาราส่งออก</h2>
-              <p className="lead" style={{ marginTop: 16, fontSize: 16 }}>ผิว EPDM มีลายช่วยยึดเกาะ รับแรงกระแทกได้ถึง 200 กก. โครงสร้างออกแบบโดยสถาปนิก</p>
+              <p className="eyebrow" style={{ marginBottom: 10 }}>{pt.materialEyebrow}</p>
+              <h2 className="title">{pt.materialTitle}</h2>
+              <p className="lead" style={{ marginTop: 16, fontSize: 16 }}>{pt.materialBody}</p>
             </div>
-            <Image sizes={SIZES.half} src={img.epdmCloseup} alt="ผิวยาง EPDM ระยะใกล้" className="photo" style={{ aspectRatio: '4 / 3' }} />
+            <Image sizes={SIZES.half} src={img.epdmCloseup} alt={pt.materialAlt} className="photo" style={{ aspectRatio: '4 / 3' }} />
           </section>
         )}
 
         {p.magnets && (
           <section className="container section--lg split split--center" style={{ gap: '28px 48px', flexWrap: 'wrap-reverse' }}>
-            <Image sizes={SIZES.half} src={img.magnets} alt="แม่เหล็กฝังใต้แผ่นกระดานและบนกล่อง" className="photo" style={{ aspectRatio: '1' }} />
+            <Image sizes={SIZES.half} src={img.magnets} alt={pt.setAlt} className="photo" style={{ aspectRatio: '1' }} />
             <div>
-              <p className="eyebrow" style={{ marginBottom: 10 }}>ต่อเป็นชุด</p>
-              <h2 className="title">เพิ่มแม่เหล็ก แล้วต่อเป็นสะพานหรือทางลาด</h2>
+              <p className="eyebrow" style={{ marginBottom: 10 }}>{pt.setEyebrow}</p>
+              <h2 className="title">{pt.setTitle}</h2>
               <ol className="pdp-steps">
-                <li><span>1</span>วาง Target Box หรือ Slant Box เป็นฐาน</li>
-                <li><span>2</span>วาง Place Board ที่ติดแม่เหล็กพาดลงไป</li>
-                <li><span>3</span>แม่เหล็กยึดแน่น พร้อมเล่นได้ทันที</li>
+                {pt.setSteps.map((step, i) => <li key={step}><span>{i + 1}</span>{step}</li>)}
               </ol>
             </div>
           </section>
@@ -163,7 +165,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
         {d.moves && d.moves.length > 0 && (
           <section className="container section--lg">
-            <h2 className="title">ท่าฝึกที่ใช้กับชิ้นนี้</h2>
+            <h2 className="title">{pt.movesTitle}</h2>
             <div className="auto-grid" style={css({ '--min': '240px', '--gap': '12px', marginTop: 24 })}>
               {d.moves.map((m) => (
                 <div key={m.title} className="outline-card outline-card--sm">
@@ -178,7 +180,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
         {d.specs && d.specs.length > 0 && (
           <section className="container section--lg">
-            <h2 className="title">สเปก</h2>
+            <h2 className="title">{pt.specsTitle}</h2>
             <dl className="pdp-specs">
               {d.specs.map(([k, v]) => (
                 <div key={k}>
@@ -192,7 +194,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
         {related.length > 0 && (
           <section className="section--lg" style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <h2 className="title" style={{ padding: '0 16px' }}>ใช้ร่วมกันได้</h2>
+            <h2 className="title" style={{ padding: '0 16px' }}>{pt.relatedTitle}</h2>
             <div className="pdp-related">
               {related.map((r) => <MiniProductCard key={r.slug} p={r} />)}
             </div>
@@ -200,7 +202,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
         )}
 
         <section id="faq" className="container section--lg" style={{ paddingBottom: 96 }}>
-          <h2 className="title">คำถามที่พบบ่อย</h2>
+          <h2 className="title">{pt.faqTitle}</h2>
           <div className="faq" style={{ marginTop: 20 }}>
             {faq.map((f, i) => (
               <details key={f.q} open={i === 0}>
