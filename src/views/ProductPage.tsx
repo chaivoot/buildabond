@@ -113,7 +113,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
               <div className="row-between">
                 <div>
                   <p className="strong" style={{ fontSize: 15 }}>{pt.magnetsTitle}</p>
-                  <p className="small" style={{ marginTop: 2 }}>{pt.magnetsHint(baht(settings.magnetPrice))}</p>
+                  <p className="small" style={{ marginTop: 2 }}>{(p.slug.includes('board') ? pt.magnetsHintBoard : pt.magnetsHintBase)(baht(settings.magnetPrice))}</p>
                 </div>
                 <QtyStepper value={magnets} onChange={setMagnets} min={0} max={settings.maxMagnets} decLabel={pt.magnetsDec} incLabel={pt.magnetsInc} />
               </div>
