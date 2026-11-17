@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { SiteHeader } from '../components/SiteHeader';
 import { StatusPill } from '../components/StatusPill';
 import { baht } from '../data/format';
+import { SOCIAL } from '../data/social';
 import { thaiDateTime } from '../lib/dates';
 import { trackOrder, type TrackedOrder } from '../server/actions/shop';
 import { useI18n } from '../i18n/LocaleProvider';
@@ -70,7 +71,7 @@ function OrderStatusCard({ order }: { order: TrackedOrder }) {
       <section className="panel" style={{ marginTop: 36 }}>
         <p className="small">{order.id} · {baht(order.total)}</p>
         <p className="num-display" style={{ marginTop: 6, fontSize: 26 }}>{tr.cancelled}</p>
-        <p className="body" style={{ marginTop: 10 }}>{t.common.askLine} <a href="https://line.me/">LINE</a></p>
+        <p className="body" style={{ marginTop: 10 }}>{t.common.askLine} <a href={SOCIAL.line} target="_blank" rel="noopener noreferrer">LINE</a></p>
       </section>
     );
   }
@@ -111,7 +112,7 @@ function OrderStatusCard({ order }: { order: TrackedOrder }) {
 
       <div className="divider-top body" style={{ paddingTop: 16, fontSize: 14 }}>
         <p>{order.items.map((i) => `${i.name}${lang === 'th' && i.opt && i.opt !== '—' ? ` ${i.opt}` : ''}${i.qty > 1 ? ` × ${i.qty}` : ''}`).join(' · ')}</p>
-        <p style={{ marginTop: 6 }}>{t.common.askLine} <a href="https://line.me/">LINE</a></p>
+        <p style={{ marginTop: 6 }}>{t.common.askLine} <a href={SOCIAL.line} target="_blank" rel="noopener noreferrer">LINE</a></p>
       </div>
     </section>
   );

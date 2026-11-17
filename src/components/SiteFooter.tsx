@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SOCIAL } from '../data/social';
 import { css } from '../data/style';
 import { useI18n } from '../i18n/LocaleProvider';
 
@@ -31,10 +32,9 @@ export function SiteFooter() {
           </div>
           <div className="footer-col">
             <p>{f.contact}</p>
-            {/* TODO: replace with the shop's real social URLs */}
-            <a href="https://line.me/">LINE</a>
-            <a href="https://www.facebook.com/">Facebook</a>
-            <a href="https://www.instagram.com/">Instagram</a>
+            <a href={SOCIAL.line} target="_blank" rel="noopener noreferrer">LINE</a>
+            <a href={SOCIAL.facebook} target="_blank" rel="noopener noreferrer">Facebook</a>
+            <a href={SOCIAL.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
           </div>
         </div>
         <p style={{ marginTop: 48, fontSize: 13, color: 'var(--on-dark-3)' }}>© 2026 Buildabond Active Play &amp; Fitness</p>

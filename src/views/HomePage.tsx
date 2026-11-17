@@ -7,6 +7,7 @@ import { BrainIcon, HeartIcon, StrengthIcon } from '../components/Icons';
 import { SiteFooter } from '../components/SiteFooter';
 import { SiteHeader } from '../components/SiteHeader';
 import { img } from '../data/images';
+import { SOCIAL } from '../data/social';
 import { css } from '../data/style';
 import { useI18n } from '../i18n/LocaleProvider';
 import './HomePage.css';
@@ -174,7 +175,7 @@ export function HomePage() {
               <h2 className="title">{h.ugcTitle}</h2>
               <p className="body" style={{ marginTop: 8 }}>{h.ugcLead}</p>
             </div>
-            <a href="https://www.instagram.com/" style={{ fontSize: 15, fontWeight: 500 }}>{h.ugcLink}</a>
+            <a href={SOCIAL.instagram} target="_blank" rel="noopener noreferrer" style={{ fontSize: 15, fontWeight: 500 }}>{h.ugcLink}</a>
           </div>
           <div className="auto-fill" style={css({ '--gap': '8px', marginTop: 24 })}>
             {UGC.map((src, i) => (
