@@ -108,6 +108,7 @@ const SCHEMA = [
   )`,
   `CREATE TABLE IF NOT EXISTS lookup_attempts (ip text NOT NULL, at timestamptz NOT NULL DEFAULT now())`,
   `CREATE INDEX IF NOT EXISTS lookup_attempts_ip_at ON lookup_attempts (ip, at)`,
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS magnet_count integer NOT NULL DEFAULT 0`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id text`,
   `CREATE INDEX IF NOT EXISTS orders_customer_id ON orders (customer_id)`,
   `CREATE TABLE IF NOT EXISTS customer_events (
@@ -198,6 +199,12 @@ async function migrate(d: Driver) {
   await once(d, 'migration:magnets-1', async () => {
     await d.query(`UPDATE products SET magnets = true WHERE slug IN ('target-box', 'slant-box')`);
   });
+  // Magnets became a fixed count per product (the customer only chooses yes/no). Starting counts; edit in the admin.
+  await once(d, 'migration:magnet-count-1', async () => {
+    for (const [slug, n] of [['place-board', 4], ['target-box', 2], ['slant-box', 2]] as const) {
+      await d.query(`UPDATE products SET magnet_count = $2 WHERE slug = $1 AND magnet_count = 0`, [slug, n]);
+    }
+  });
   // English copy for products seeded before the site was bilingual (only where none has been entered).
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
@@ -215,10 +222,10 @@ async function migrate(d: Driver) {
   for (const p of SEED_PRODUCTS) {
     await d.query(
       `INSERT INTO products (slug, sort, cat, name, th, price_label, price, kg, img, cover, badge, coming_soon, custom, colors,
-        colors_label, swatches_label, magnets, sku, stock, visible, detail, en)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) ON CONFLICT (slug) DO NOTHING`,
+        colors_label, swatches_label, magnets, sku, stock, visible, detail, en, magnet_count)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) ON CONFLICT (slug) DO NOTHING`,
       [p.slug, p.sort, p.cat, p.name, p.th, p.priceLabel, p.price, p.kg, p.img, p.cover, p.badge, p.comingSoon, p.custom, json(p.colors),
-        p.colorsLabel, p.swatchesLabel, p.magnets, p.sku, p.stock, p.visible, json(p.detail), json(p.en)],
+        p.colorsLabel, p.swatchesLabel, p.magnets, p.sku, p.stock, p.visible, json(p.detail), json(p.en), p.magnetCount],
     );
   }
   for (const o of SEED_ORDERS) {

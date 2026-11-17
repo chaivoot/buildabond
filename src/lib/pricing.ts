@@ -6,6 +6,7 @@ export interface CartLineInput {
   slug: string;
   qty: number;
   color?: number;
+  /** Magnets chosen: any positive number means "yes"; the count always comes from the product. */
   magnets?: number;
   /** Made-to-measure dimensions in cm */
   custom?: { w: number; l: number; h: number };
@@ -33,7 +34,7 @@ export function priceLine(line: CartLineInput, product: Product | undefined, set
     return { slug: CUSTOM_SLUG, name: `${q.model} สั่งทำ`, opt: `${w}×${l}×${h} cm · ${color}`, unitPrice: q.price, kg: CUSTOM_KG, status: 'ผลิตตามสั่ง · 28-35 วัน' };
   }
   if (!product || !product.visible || product.comingSoon || product.custom) return null;
-  const magnets = product.magnets ? Math.max(0, Math.min(settings.maxMagnets, Math.floor(line.magnets ?? 0))) : 0;
+  const magnets = product.magnets && (line.magnets ?? 0) > 0 ? Math.max(0, Math.floor(product.magnetCount)) : 0;
   const color = product.colors.length ? product.colors[Math.max(0, Math.min(product.colors.length - 1, line.color ?? 0))] : null;
   const opt = [color?.label, magnets ? `แม่เหล็ก ${magnets} ชิ้น` : null].filter(Boolean).join(' · ') || '—';
   const status =

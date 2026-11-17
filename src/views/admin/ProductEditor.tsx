@@ -156,6 +156,13 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: '0 24px' }}>
             <label className="admin-check"><input type="checkbox" checked={p.visible} onChange={(e) => set('visible', e.target.checked)} />แสดงบนหน้าร้าน</label>
             <label className="admin-check"><input type="checkbox" checked={p.magnets} onChange={(e) => set('magnets', e.target.checked)} />เลือกเพิ่มแม่เหล็กได้</label>
+            {p.magnets && (
+              <label className="admin-check">
+                จำนวนแม่เหล็กที่ใช้
+                <input className="input input--sm" style={{ width: 80, height: 40 }} type="number" min={1} max={20} value={p.magnetCount || ''} onChange={(e) => set('magnetCount', Number(e.target.value))} aria-label="จำนวนแม่เหล็กที่ใช้ต่อชิ้น" />
+                ชิ้น
+              </label>
+            )}
             <label className="admin-check"><input type="checkbox" checked={p.cover} onChange={(e) => set('cover', e.target.checked)} />รูปหลักเป็นภาพบรรยากาศ (เต็มกรอบ)</label>
             <label className="admin-check"><input type="checkbox" checked={p.comingSoon} onChange={(e) => set('comingSoon', e.target.checked)} />เร็ว ๆ นี้ (ยังไม่ขาย)</label>
             <label className="admin-check"><input type="checkbox" checked={p.custom} onChange={(e) => set('custom', e.target.checked)} />สั่งทำ (ลิงก์ไปหน้าคำนวณราคา)</label>

@@ -31,14 +31,14 @@ export const COLOR_PRESETS: { id: string; label: string; colors: ColorOption[]; 
 
 const rubber = { colors: RUBBER_COLORS, colorsLabel: 'สีผิวยาง', swatchesLabel: 'สีผิวยาง ฟ้า ส้ม ผสม' };
 const none = { colors: [], colorsLabel: '', swatchesLabel: '' };
-const base = { cover: false, badge: '', comingSoon: false, custom: false, magnets: false, sku: '', stock: 'ready' as const, visible: true, detail: {}, en: {} };
+const base = { cover: false, badge: '', comingSoon: false, custom: false, magnets: false, magnetCount: 0, sku: '', stock: 'ready' as const, visible: true, detail: {}, en: {} };
 
 type SeedProduct = Omit<Product, 'sort' | 'en'> & { en?: ProductText };
 
 const list: SeedProduct[] = [
   {
     ...base, ...rubber, slug: 'place-board', cat: 'sb', name: 'Place Board', th: 'แผ่นกระดาน 80×33×1.5 cm', priceLabel: '฿2,190', price: 2190, kg: 3.5,
-    img: '/images/place-board.jpg', cover: true, magnets: true, sku: '0101',
+    img: '/images/place-board.jpg', cover: true, magnets: true, magnetCount: 4, sku: '0101',
     detail: {
       subtitle: 'แผ่นกระดาน 80 × 33 × 1.5 cm · รหัส 0101',
       gallery: [
@@ -78,8 +78,8 @@ const list: SeedProduct[] = [
       ],
     },
   },
-  { ...base, ...rubber, slug: 'target-box', cat: 'sb', magnets: true, name: 'Target Box', th: 'สูง 6 / 10 cm', priceLabel: 'เริ่ม ฿1,590', price: 1590, kg: 2.6, img: '/images/target-box.jpg' },
-  { ...base, ...rubber, slug: 'slant-box', cat: 'sb', magnets: true, name: 'Slant Box', th: 'มุมเอียง 15° / 20°', priceLabel: 'เริ่ม ฿1,590', price: 1590, kg: 2.4, img: '/images/slant-box.jpg' },
+  { ...base, ...rubber, slug: 'target-box', cat: 'sb', magnets: true, magnetCount: 2, name: 'Target Box', th: 'สูง 6 / 10 cm', priceLabel: 'เริ่ม ฿1,590', price: 1590, kg: 2.6, img: '/images/target-box.jpg' },
+  { ...base, ...rubber, slug: 'slant-box', cat: 'sb', magnets: true, magnetCount: 2, name: 'Slant Box', th: 'มุมเอียง 15° / 20°', priceLabel: 'เริ่ม ฿1,590', price: 1590, kg: 2.4, img: '/images/slant-box.jpg' },
   { ...base, ...rubber, slug: 'oct-box', cat: 'sb', name: 'Oct Box', th: 'ฐานแปดเหลี่ยม สูง 16 cm มีรูเสียบ Cavaletti', priceLabel: '฿3,590', price: 3590, kg: 4.2, img: '/images/oct-box.jpg' },
   { ...base, ...rubber, slug: 'narrow-target', cat: 'sb', name: 'Narrow Target', th: 'ฐานยืน 25 / 35 / 45 cm', priceLabel: 'เริ่ม ฿390', price: 390, kg: 0.6, img: '/images/narrow-target.jpg' },
   { ...base, ...none, slug: 'jump-box', cat: 'sb', name: 'Jump Box', th: 'กล่องกระโดด สั่งทำตามขนาด', priceLabel: 'เริ่ม ฿2,590', price: 2590, kg: 6, img: '/images/jump-box.jpg', cover: true, badge: 'สั่งทำ', custom: true },
