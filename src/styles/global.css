@@ -40,6 +40,9 @@
 
   --radius-pill: 999px;
   --header-h: 57px;
+  --header-nav-h: 42px;
+  /** Full height of the sticky storefront header (bar + category nav) */
+  --header-full: calc(var(--header-h) + var(--header-nav-h) + 1px);
 }
 
 /* ---------- Base ---------- */

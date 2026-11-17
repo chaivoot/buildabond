@@ -1,26 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { useCart } from '../context/CartContext';
 import { LANG_COOKIE } from '../i18n/config';
 import { useI18n } from '../i18n/LocaleProvider';
-import { BagIcon, CloseIcon, MenuIcon } from './Icons';
+import { BagIcon } from './Icons';
 import { Logo } from './Logo';
 import './SiteHeader.css';
-
-interface Props {
-  /**
-   * store   – language, cart and menu (storefront pages)
-   * simple  – logo plus an optional right-hand slot (cart, checkout, order pages)
-   */
-  variant?: 'store' | 'simple';
-  /** Always show the category nav row (home page). */
-  showNav?: boolean;
-  sticky?: boolean;
-  /** Replaces the cart + menu buttons in the store variant, or fills the right side of the simple variant. */
-  right?: ReactNode;
-}
 
 /** TH / EN switch. URLs don't carry the language, so it's stored in a cookie and the page reloads. */
 export function LangToggle() {
@@ -37,63 +25,45 @@ export function LangToggle() {
   );
 }
 
-export function SiteHeader({ variant = 'store', showNav = false, sticky = true, right }: Props) {
+/**
+ * The storefront header, the same on every page: logo, language, cart and the category bar.
+ * It stays at the top while scrolling (height: --header-full in global.css).
+ * `extra` adds a page-specific action next to the cart (e.g. "Contact sales").
+ * `activeCat` highlights a category link (the shop page passes its current filter).
+ */
+export function SiteHeader({ extra, activeCat }: { extra?: ReactNode; activeCat?: string } = {}) {
   const { t } = useI18n();
   const { count, openDrawer } = useCart();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const navVisible = showNav || menuOpen;
+  const path = usePathname();
+  // Middleware serves /th/... and /en/... behind clean URLs; ignore an explicit prefix when matching.
+  const current = path.replace(/^\/(en|th)(?=\/|$)/, '') || '/';
   const nav = [
-    { to: '/shop?cat=sb', label: 'Strength & Balance' },
-    { to: '/shop?cat=ip', label: 'Interactive Play' },
-    { to: '/shop?cat=tug', label: 'Tug Toys' },
-    { to: '/custom', label: t.common.navCustom },
-    { to: '/business', label: t.common.navBusiness },
-    { to: '/track', label: t.common.navTrack },
+    { to: '/shop?cat=sb', label: 'Strength & Balance', active: activeCat === 'sb' },
+    { to: '/shop?cat=ip', label: 'Interactive Play', active: activeCat === 'ip' },
+    { to: '/shop?cat=tug', label: 'Tug Toys', active: activeCat === 'tug' },
+    { to: '/custom', label: t.common.navCustom, active: current === '/custom' },
+    { to: '/business', label: t.common.navBusiness, active: current === '/business' },
+    { to: '/track', label: t.common.navTrack, active: current === '/track' },
   ];
 
   return (
-    <header className={`site-header${sticky ? ' site-header--sticky' : ''}`}>
-      <div className={`container site-header__bar${variant === 'store' ? ' site-header__bar--store' : ''}`}>
+    <header className="site-header">
+      <div className="container site-header__bar">
         <Logo />
-        {variant === 'store' ? (
-          <>
-            <LangToggle />
-            {right ?? (
-              <>
-                <button type="button" className="icon-btn" aria-label={t.common.cartAria(count)} onClick={openDrawer}>
-                  <BagIcon />
-                  {count > 0 && <span className="site-header__badge">{count}</span>}
-                </button>
-                {!showNav && (
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={menuOpen ? t.common.closeMenu : t.common.openMenu}
-                    aria-expanded={menuOpen}
-                    onClick={() => setMenuOpen((v) => !v)}
-                  >
-                    {menuOpen ? <CloseIcon /> : <MenuIcon />}
-                  </button>
-                )}
-              </>
-            )}
-          </>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <LangToggle />
-            {right}
-          </div>
-        )}
+        <LangToggle />
+        {extra}
+        <button type="button" className="icon-btn" aria-label={t.common.cartAria(count)} onClick={openDrawer}>
+          <BagIcon />
+          {count > 0 && <span className="site-header__badge">{count}</span>}
+        </button>
       </div>
-      {variant === 'store' && navVisible && (
-        <nav aria-label={t.common.categoriesNav} className="container site-header__nav">
-          {nav.map((n) => (
-            <Link key={n.to} href={n.to} onClick={() => setMenuOpen(false)}>
-              {n.label}
-            </Link>
-          ))}
-        </nav>
-      )}
+      <nav aria-label={t.common.categoriesNav} className="container site-header__nav">
+        {nav.map((n) => (
+          <Link key={n.to} href={n.to} aria-current={n.active ? 'page' : undefined}>
+            {n.label}
+          </Link>
+        ))}
+      </nav>
     </header>
   );
 }

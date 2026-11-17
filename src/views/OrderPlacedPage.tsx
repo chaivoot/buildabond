@@ -30,7 +30,7 @@ export function OrderPlacedPage({ order, accessKey, bank, qrSvg }: Props) {
   if (!order) {
     return (
       <>
-        <SiteHeader variant="simple" sticky={false} />
+        <SiteHeader />
         <main className="container container--narrow" style={{ paddingTop: 36, paddingBottom: 80 }}>
           <h1 className="display" style={{ fontSize: 'clamp(34px, 8vw, 52px)', letterSpacing: 0 }}>{o.notFoundTitle}</h1>
           <p className="lead" style={{ marginTop: 10, fontSize: 16 }}>{o.notFoundBody}</p>
@@ -67,7 +67,7 @@ export function OrderPlacedPage({ order, accessKey, bank, qrSvg }: Props) {
 
   return (
     <>
-      <SiteHeader variant="simple" sticky={false} />
+      <SiteHeader />
       <main className="container container--narrow" style={{ paddingTop: 36, paddingBottom: 80 }}>
         <div className="success-badge"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg></div>
         <h1 className="display" style={{ marginTop: 18, fontSize: 'clamp(34px, 8vw, 52px)', lineHeight: 1.12, letterSpacing: 0 }}>{o.title}</h1>

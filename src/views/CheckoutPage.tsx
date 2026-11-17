@@ -152,8 +152,9 @@ export function CheckoutPage() {
 
   return (
     <>
-      <SiteHeader variant="simple" sticky={false} right={<Link href="/cart" style={{ fontSize: 14, color: 'var(--ink)' }}>{c.backToCart}</Link>} />
-      <main className="container" style={{ paddingTop: 28, paddingBottom: 80 }}>
+      <SiteHeader />
+      <main className="container" style={{ paddingTop: 20, paddingBottom: 80 }}>
+        <p className="small" style={{ marginBottom: 8 }}><Link href="/cart">← {c.backToCart}</Link></p>
         <h1 className="display" style={{ fontSize: 'clamp(36px, 8vw, 56px)', lineHeight: 1.1, letterSpacing: 0 }}>{c.title}</h1>
         <ol aria-label={c.stepsAria} className="checkout-steps">
           {c.steps.map((s, i) => (

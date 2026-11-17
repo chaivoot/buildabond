@@ -61,7 +61,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
   return (
     <>
-      <SiteHeader sticky={false} />
+      <SiteHeader />
       <div className="buy-bar">
         <div className="container buy-bar__inner">
           <div className="buy-bar__text">

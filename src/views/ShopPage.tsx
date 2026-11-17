@@ -34,7 +34,7 @@ export function ShopPage({ cat, products }: { cat: CategoryId | 'all'; products:
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader activeCat={cat} />
       <main className="container" style={{ paddingTop: 36, paddingBottom: 80 }}>
         <h1 className="display">{s.title}</h1>
         <p className="lead" style={{ marginTop: 12, maxWidth: 560, fontSize: 16, lineHeight: 1.7 }}>{s.lead}</p>
