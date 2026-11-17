@@ -7,7 +7,7 @@ import { shippingFee } from '../../lib/shipping';
 import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
 import { allowAttempt, isEmail, isPhone, lookupCustomer, normalizeEmail, normalizePhone, recordCustomer, verifiedAddress, type CustomerAddress, type Lookup } from '../customers';
-import { attachSlip, createOrder, findOrderByContact, getOrderWithKey } from '../orders';
+import { attachSlip, createOrder, linkOrderToCustomer, findOrderByContact, getOrderWithKey } from '../orders';
 import { listProducts } from '../products';
 import { createRequest } from '../requests';
 import { getSettings } from '../settings';
@@ -67,9 +67,15 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const subtotal = items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
   const kg = Math.round(items.reduce((a, i) => a + i.kg * i.qty, 0) * 10) / 10;
   const shipping = shippingFee(kg, settings.shipping);
-  const { id, key } = await createOrder({ name, phone, email, address, note: clean(input.note), items, subtotal, shipping, total: subtotal + shipping, kg });
-  // Remember this customer's address for next time (keyed by email + phone).
-  await recordCustomer(email, phone, addr, { phone: clean(input.oldPhone, 40) || undefined, email: clean(input.oldEmail, 200) || undefined }).catch(() => {});
+  const old = { phone: clean(input.oldPhone, 40) || undefined, email: clean(input.oldEmail, 200) || undefined };
+  const { id, key } = await createOrder({ name, phone, email, address, note: clean(input.note), customerId: null, items, subtotal, shipping, total: subtotal + shipping, kg });
+  // Remember this customer (keyed by email + phone), log any changes against this order, and link the order to them.
+  try {
+    const customerId = await recordCustomer(email, phone, addr, old, id);
+    if (customerId) await linkOrderToCustomer(id, customerId);
+  } catch {
+    /* the order is placed either way */
+  }
   revalidatePath('/admin');
   return { ok: true, id, key };
 }

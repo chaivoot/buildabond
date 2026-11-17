@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { SearchIcon } from '../../components/Icons';
 import { ORDER_STATUSES, StatusPill, type OrderStatus } from '../../components/StatusPill';
@@ -12,10 +13,10 @@ import { markShipped, updateOrderStatus } from '../../server/actions/admin';
 const CARRIERS = ['ไปรษณีย์ไทย', 'นิ่มเอ็กซ์เพรส', 'Flash Express', 'Kerry Express', 'J&T Express'];
 const digits = (s: string) => s.replace(/\D/g, '');
 
-export function OrdersAdmin({ orders }: { orders: Order[] }) {
+export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initialOrder?: string }) {
   const [tab, setTab] = useState<OrderStatus | 'all'>('all');
   const [query, setQuery] = useState('');
-  const [selId, setSelId] = useState(orders[0]?.id ?? '');
+  const [selId, setSelId] = useState(initialOrder && orders.some((o) => o.id === initialOrder) ? initialOrder : orders[0]?.id ?? '');
   const [carrier, setCarrier] = useState(CARRIERS[0]);
   const [trackNo, setTrackNo] = useState('');
   const [error, setError] = useState('');
@@ -108,6 +109,9 @@ export function OrdersAdmin({ orders }: { orders: Order[] }) {
               {sel.email && <p><a href={`mailto:${sel.email}?subject=${encodeURIComponent(`ออร์เดอร์ ${sel.id}`)}`}>{sel.email}</a></p>}
               <p className="muted" style={{ marginTop: 2 }}>{sel.address}</p>
               {sel.note && <p style={{ marginTop: 6 }}>หมายเหตุ: {sel.note}</p>}
+              {sel.customerId && (
+                <p style={{ marginTop: 6 }}><Link href={`/admin/customers/${sel.customerId}`}>ดูประวัติลูกค้า →</Link></p>
+              )}
             </div>
 
             <ul className="admin__lines">
