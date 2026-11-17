@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { StatusPill } from '../../components/StatusPill';
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
+import { formatPhone } from '../../lib/phone';
 import type { Order } from '../../lib/types';
 import type { CustomerEvent, CustomerEventKind, CustomerSummary } from '../../server/customers';
 
@@ -40,7 +41,7 @@ export function CustomerDetail({ customer: c, events, orders }: Props) {
           <h2>ข้อมูลปัจจุบัน</h2>
           <dl className="admin-dl">
             <dt>อีเมล</dt><dd><a href={`mailto:${c.email}`}>{c.email}</a></dd>
-            <dt>เบอร์โทร</dt><dd><a href={`tel:${c.phone}`}>{c.phone}</a></dd>
+            <dt>เบอร์โทร</dt><dd><a href={`tel:${c.phone}`}>{formatPhone(c.phone)}</a></dd>
             <dt>ที่อยู่</dt><dd>{address || '—'}</dd>
             <dt>ลูกค้าตั้งแต่</dt><dd>{thaiDateTime(c.createdAt, true)}</dd>
           </dl>

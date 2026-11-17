@@ -1,4 +1,5 @@
 import type { Order, OrderItem, OrderStatus } from '../lib/types';
+import { normalizePhone } from '../lib/phone';
 import { sql, toJson } from './db';
 
 interface Row {
@@ -35,7 +36,6 @@ export async function getOrderWithKey(id: string, key: string): Promise<Order | 
   return rows[0] ? fromRow(rows[0]) : null;
 }
 
-const digits = (s: string) => s.replace(/\D/g, '');
 
 /** Order lookup for the tracking page: order number + the phone or email used at checkout. */
 export async function findOrderByContact(id: string, contact: string): Promise<Order | null> {
@@ -43,7 +43,8 @@ export async function findOrderByContact(id: string, contact: string): Promise<O
   if (!o) return null;
   const c = contact.trim().toLowerCase();
   if (c.includes('@')) return o.email && o.email.toLowerCase() === c ? o : null;
-  return digits(o.phone) === digits(c) && digits(c) !== '' ? o : null;
+  const phone = normalizePhone(c);
+  return phone !== '' && normalizePhone(o.phone) === phone ? o : null;
 }
 
 export interface NewOrder {

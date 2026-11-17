@@ -1,3 +1,4 @@
+import { normalizePhone } from '../lib/phone';
 import { sql } from './db';
 
 export interface CustomerAddress {
@@ -17,11 +18,7 @@ export interface Customer extends CustomerAddress {
 
 export const normalizeEmail = (s: string) => s.trim().toLowerCase();
 
-/** Digits only, with +66 / 66 converted to a leading 0 (Thai numbers). */
-export function normalizePhone(s: string): string {
-  const d = s.replace(/\D/g, '');
-  return d.startsWith('66') && d.length === 11 ? `0${d.slice(2)}` : d;
-}
+export { normalizePhone };
 
 export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 export const isPhone = (s: string) => s.length >= 9 && s.length <= 10;

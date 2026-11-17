@@ -355,6 +355,7 @@ export const en: Dict = {
   errors: {
     missingFields: 'Please fill in your name, phone, email and address.',
     invalidEmail: 'Please enter a valid email address.',
+    invalidPhone: 'Please enter a Thai phone number, e.g. 081-234-5678 or +66 81 234 5678.',
     emptyCart: 'Your cart is empty.',
     unavailable: 'Something in your cart can no longer be ordered. Please check your cart.',
     orderNotFound: 'Order not found.',

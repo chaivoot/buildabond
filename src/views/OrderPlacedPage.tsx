@@ -7,6 +7,7 @@ import { DocIcon, DownloadIcon, QrIcon, UploadIcon } from '../components/Icons';
 import { SiteHeader } from '../components/SiteHeader';
 import { baht } from '../data/format';
 import { useI18n } from '../i18n/LocaleProvider';
+import { formatPhone } from '../lib/phone';
 import type { Order, ShopSettings } from '../lib/types';
 import { uploadSlip } from '../server/actions/shop';
 import './OrderPlacedPage.css';
@@ -145,7 +146,7 @@ export function OrderPlacedPage({ order, accessKey, bank, qrSvg }: Props) {
           <Link href="/" className="btn btn--ghost btn--block">{o.homeCta}</Link>
         </div>
         <p className="small" style={{ marginTop: 18, lineHeight: 1.7 }}>
-          {o.keepNote(order.phone, order.email)}
+          {o.keepNote(formatPhone(order.phone), order.email)}
         </p>
       </main>
     </>
