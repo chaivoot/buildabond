@@ -7,6 +7,7 @@ import { useState, useTransition, type ReactNode } from 'react';
 import { CATEGORIES } from '../../data/products';
 import { COLOR_PRESETS } from '../../data/seed';
 import type { CategoryId, Product, ProductDetail, ProductText, StockStatus } from '../../lib/types';
+import { PRODUCT_TOKENS_HELP } from '../../lib/productTokens';
 import { removeProduct, saveProduct, uploadProductImage } from '../../server/actions/admin';
 
 interface Props {
@@ -219,7 +220,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
         <section className="admin-card">
           <h2>สเปกและสินค้าที่ใช้ร่วมกัน</h2>
           <div className="admin-grid">
-            <Field label="สเปก" hint="บรรทัดละรายการ รูปแบบ หัวข้อ | รายละเอียด" wide>
+            <Field label="สเปก" hint={`บรรทัดละรายการ รูปแบบ หัวข้อ | รายละเอียด · ใช้ตัวแปรได้: ${PRODUCT_TOKENS_HELP}`} wide>
               <textarea className="input" rows={7} value={specs} onChange={(e) => { setSpecs(e.target.value); setSaved(false); }} placeholder={'ขนาด | ยาว 80 × กว้าง 33 × สูง 1.5 cm\nน้ำหนัก | 3.5 กก.'} />
             </Field>
           </div>

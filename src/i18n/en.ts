@@ -19,6 +19,8 @@ export const en: Dict = {
     incQty: 'Increase quantity',
     askLine: 'Questions? Message us on',
     sending: 'Sending…',
+    privacyLink: 'Privacy Policy',
+    formConsent: 'By sending this form you agree to our',
   },
   footer: {
     products: 'Products',
@@ -27,6 +29,7 @@ export const en: Dict = {
     track: 'Track order',
     shipping: 'Shipping',
     business: 'For business',
+    privacy: 'Privacy policy',
     contact: 'Contact us',
   },
   home: {
@@ -186,7 +189,7 @@ export const en: Dict = {
     audiences: ['Pet shops', 'Trainers', 'Vet clinics', 'Dog fitness centres'],
     plansTitle: 'Two ways to work with us',
     wholesaleTitle: 'Wholesale, to use or resell',
-    wholesale: ['Minimum 5 pieces, mix any models', 'Free shipping, we choose the carrier', 'Extra 5% off orders over ฿10,000'],
+    wholesale: ['Minimum 5 pieces, mix any models', 'Free shipping, we choose the carrier', 'Ordering in bulk? Ask us about discounts'],
     dropshipTitle: 'You sell, we ship',
     dropship: ['No minimum and no stock to hold', 'Flat shipping per address: ฿50 under ฿1,000, ฿200 from ฿1,000', 'Monthly statement and receipt'],
     howTitle: 'How dropship works',
@@ -292,6 +295,7 @@ export const en: Dict = {
     amountDue: 'Amount to pay',
     confirm: 'Place order',
     placing: 'Placing order…',
+    consent: 'By placing your order you agree to our',
     shippingNote: 'Shipped with Thailand Post or Nim Express. Tracking number within 1 day of shipping.',
   },
   order: {

@@ -204,6 +204,24 @@ async function migrate(d: Driver) {
     await d.query(`DELETE FROM customer_events WHERE customer_id = 'cust-demo-1'`);
     await d.query(`DELETE FROM customers WHERE id = 'cust-demo-1'`);
   });
+  // Replace the "[to be confirmed]" placeholders from the design with live tokens (see lib/productTokens.ts).
+  await once(d, 'migration:placeholders-1', async () => {
+    const swap: [string, string][] = [
+      ['แม่เหล็กราคาชิ้นละ ฿100 ฐานที่จะใช้คู่กันต้องสั่งแม่เหล็กด้วย จำนวนที่แนะนำ [ระบุจำนวน]', 'Place Board ใช้แม่เหล็ก {magnets} ชิ้น ติดใต้แผ่น เลือกเพิ่มได้ตอนใส่ตะกร้า ส่วน Target Box และ Slant Box ที่จะใช้คู่กันก็เลือกเพิ่มแม่เหล็กได้เช่นกัน แม่เหล็กราคาชิ้นละ {magnetPrice}'],
+      ['Magnets are ฿100 each. The base you pair it with needs magnets too. Recommended number: [number].', 'The Place Board uses {magnets} magnets fitted underneath; add them when you put it in your cart. Target Box and Slant Box can have magnets added too. Magnets are {magnetPrice} each.'],
+      ['[ระบุน้ำหนัก]', '{kg}'],
+      ['[weight]', '{kg}'],
+    ];
+    for (const col of ['detail', 'en']) {
+      for (const [from, to] of swap) {
+        // Text replace inside the JSON; JSON.stringify escapes the strings the same way Postgres stores them.
+        await d.query(
+          `UPDATE products SET ${col} = replace(${col}::text, $1, $2)::jsonb WHERE ${col}::text LIKE '%' || $1 || '%'`,
+          [JSON.stringify(from).slice(1, -1), JSON.stringify(to).slice(1, -1)],
+        );
+      }
+    }
+  });
   // English copy for products seeded before the site was bilingual (only where none has been entered).
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {

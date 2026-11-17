@@ -29,6 +29,7 @@ export function SiteFooter() {
             <Link href="/track">{f.track}</Link>
             <Link href="/products/place-board#faq">{f.shipping}</Link>
             <Link href="/business">{f.business}</Link>
+            <Link href="/privacy">{f.privacy}</Link>
           </div>
           <div className="footer-col">
             <p>{f.contact}</p>

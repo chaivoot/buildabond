@@ -296,7 +296,10 @@ export function CheckoutPage() {
             <button type="submit" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18 }} disabled={placing}>
               {placing ? c.placing : c.confirm}
             </button>
-            <p className="small" style={{ marginTop: 12 }}>{c.shippingNote}</p>
+            <p className="small" style={{ marginTop: 12 }}>
+              {c.consent} <Link href="/privacy" target="_blank">{t.common.privacyLink}</Link>
+            </p>
+            <p className="small" style={{ marginTop: 6 }}>{c.shippingNote}</p>
           </aside>
         </form>
       </main>

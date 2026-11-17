@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { ColorPicker } from '../components/ColorPicker';
 import { SiteHeader } from '../components/SiteHeader';
@@ -146,6 +147,7 @@ export function CustomPage() {
                     <label className="field">{c.name}<input className="input" name="_name" type="text" autoComplete="name" required style={{ height: 48 }} /></label>
                     <label className="field">{c.contact}<input className="input" name="_contact" type="text" required style={{ height: 48 }} /></label>
                     <label className="field">{c.activity}<textarea className="input" name="ใช้ทำกิจกรรม" rows={3} /></label>
+                    <p className="small">{t.common.formConsent} <Link href="/privacy" target="_blank">{t.common.privacyLink}</Link></p>
                     {error && <p role="alert" className="small" style={{ color: '#8e1f0b' }}>{error}</p>}
                     <button type="submit" className="btn btn--primary btn--lg btn--block" disabled={sending}>{sending ? t.common.sending : c.sendQuote}</button>
                   </form>
