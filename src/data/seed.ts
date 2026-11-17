@@ -1,8 +1,8 @@
 /**
- * Demo content loaded into an empty database on first run.
- * After that, everything here is edited from /admin.
+ * Starting catalogue and settings loaded into an empty database on first run.
+ * After that, everything here is edited from /admin. (No demo orders, customers or requests.)
  */
-import type { ColorOption, Order, Product, ProductText, ShopRequest, ShopSettings } from '../lib/types';
+import type { ColorOption, Product, ProductText, ShopSettings } from '../lib/types';
 
 export const RUBBER_COLORS: ColorOption[] = [
   { label: 'ฟ้า', name: 'ฟ้า Sky Blue', swatch: '#5FAEDB' },
@@ -161,32 +161,3 @@ export const SEED_SETTINGS: ShopSettings = {
   ],
 };
 
-const order = (o: Partial<Order> & Pick<Order, 'id' | 'name' | 'phone' | 'address' | 'items' | 'kg' | 'status' | 'createdAt'>): Order => {
-  const subtotal = o.items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
-  const shipping = o.kg < 1 ? 50 : o.kg < 5 ? 100 : 200;
-  return { email: '', customerId: null, note: '', slipUrl: '', slipAt: null, confirmedAt: null, shippedAt: null, carrier: '', tracking: '', subtotal, shipping, total: subtotal + shipping, ...o };
-};
-const item = (slug: string, name: string, opt: string, unitPrice: number, kg: number) => ({ slug, name, opt, unitPrice, qty: 1, kg });
-
-/** Demo orders (times are Bangkok, UTC+7). */
-export const SEED_ORDERS: Order[] = [
-  order({ id: 'BB-261116-0042', createdAt: '2026-11-16T22:51:00+07:00', slipAt: '2026-11-16T23:02:00+07:00', name: 'ณัฐกานต์ ใจดี', phone: '081-234-5678', status: 'ส่งสลิปแล้ว', address: '99/12 ซอยสุขุมวิท 50 พระโขนง คลองเตย กรุงเทพฯ 10260', kg: 6.7, items: [item('place-board', 'Place Board', 'ฟ้า · แม่เหล็ก 4 ชิ้น', 2590, 3.5), item('target-box', 'Target Box 10 cm', 'ส้ม', 1690, 2.6), item('flirt-pole', 'Flirt Pole M', 'เหยื่อชมพู', 890, 0.6)] }),
-  order({ id: 'BB-261116-0041', createdAt: '2026-11-16T20:14:00+07:00', name: 'ภาณุ ศรีสุข', phone: '089-555-1201', status: 'รอชำระ', address: '45 ถนนนิมมานเหมินท์ สุเทพ เมือง เชียงใหม่ 50200', kg: 0.5, items: [item('rabbit-dummy', 'Rabbit Dummy', '—', 1550, 0.5)] }),
-  order({ id: 'BB-261116-0040', createdAt: '2026-11-16T18:03:00+07:00', slipAt: '2026-11-16T18:20:00+07:00', name: 'ศิริพร วงศ์ทอง', phone: '062-118-4433', status: 'ส่งสลิปแล้ว', address: '12/3 หมู่ 5 บางพูด ปากเกร็ด นนทบุรี 11120', kg: 1.2, items: [item('narrow-target', 'Narrow Target 35 cm', 'ส้ม', 490, 0.6), item('narrow-target', 'Narrow Target 45 cm', 'ส้ม', 590, 0.6)] }),
-  order({ id: 'BB-261115-0039', createdAt: '2026-11-15T13:40:00+07:00', slipAt: '2026-11-15T14:05:00+07:00', confirmedAt: '2026-11-15T16:00:00+07:00', name: 'ธนวัฒน์ แก้วมณี', phone: '095-772-9080', status: 'ยืนยันแล้ว', address: '88 ถนนพระราม 9 ห้วยขวาง กรุงเทพฯ 10310', kg: 4.2, items: [item('oct-box', 'Oct Box', 'ผสม', 3590, 4.2)] }),
-  order({ id: 'BB-261115-0038', createdAt: '2026-11-15T09:12:00+07:00', slipAt: '2026-11-15T09:40:00+07:00', confirmedAt: '2026-11-15T11:20:00+07:00', name: 'กมลชนก ปัญญา', phone: '086-410-2290', status: 'ยืนยันแล้ว', address: '7 ซอยลาดพร้าว 71 วังทองหลาง กรุงเทพฯ 10310', kg: 3.4, items: [item('slant-box', 'Slant Box 20°', 'ฟ้า · แม่เหล็ก 2 ชิ้น', 1890, 3), item('sheepskin-chaser', 'Sheepskin Chaser', 'สายม่วง', 1450, 0.4)] }),
-  order({ id: 'BB-261114-0037', createdAt: '2026-11-14T16:55:00+07:00', slipAt: '2026-11-14T17:10:00+07:00', confirmedAt: '2026-11-14T18:00:00+07:00', shippedAt: '2026-11-15T15:40:00+07:00', name: 'วรเชษฐ์ มั่นคง', phone: '081-900-3321', status: 'จัดส่งแล้ว', address: '230 ถนนมิตรภาพ ในเมือง ขอนแก่น 40000', kg: 0.5, carrier: 'ไปรษณีย์ไทย', tracking: 'EF551234870TH', items: [item('flirt-pole', 'Flirt Pole S', 'เหยื่อเหลือง', 790, 0.5)] }),
-];
-
-export const SEED_REQUESTS: ShopRequest[] = [
-  { id: 'req-demo-1', kind: 'custom', createdAt: '2026-11-16T10:20:00+07:00', status: 'ใหม่', name: 'ปิยะพงษ์ เดชา', contact: '084-221-7788', data: { 'ขนาด (กว้าง×ยาว×สูง)': '90 × 60 × 15 cm', 'ขนาดรวม': '165 cm', 'สีผิวยาง': 'ผสม', 'ใช้ทำกิจกรรม': 'ใช้ในคลาสฟิตเนสหมา อยากได้แท่นยืนกว้าง ๆ' } },
-  { id: 'req-demo-2', kind: 'business', createdAt: '2026-11-15T14:05:00+07:00', status: 'ติดต่อแล้ว', name: 'Happy Paws Pet Shop', contact: '02-555-0199 · LINE @happypaws', data: { 'ประเภทธุรกิจ': 'ร้านค้าสัตว์เลี้ยง', 'ผู้ติดต่อ': 'คุณมินตรา', 'อีเมล': 'contact@example.com', 'สนใจ': 'ซื้อส่ง, Dropship', 'รายละเอียด': 'สนใจ Place Board และ Target Box อย่างละ 10 ชิ้น' } },
-];
-
-/** Demo customer (phone stored as digits, email lowercase). Try 081-234-5678 + natthakan@example.com at checkout. */
-export const SEED_CUSTOMERS = [
-  {
-    id: 'cust-demo-1', email: 'natthakan@example.com', phone: '0812345678', name: 'ณัฐกานต์ ใจดี',
-    street: '99/12 ซอยสุขุมวิท 50', subdistrict: 'พระโขนง', district: 'คลองเตย', province: 'กรุงเทพมหานคร', postcode: '10260',
-  },
-];

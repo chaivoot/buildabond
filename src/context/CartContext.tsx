@@ -25,29 +25,25 @@ interface CartState {
 }
 
 const MAX_QTY = 9;
-const STORAGE_KEY = 'bb-cart-v2';
+const STORAGE_KEY = 'bb-cart-v3';
+/** Older keys held the pre-launch demo cart; they're dropped so nobody starts with demo items. */
+const OLD_KEYS = ['bb-cart-v2'];
 
-/** Demo contents shown until the visitor changes the cart. Prices match the seed catalogue. */
 const lineId = (i: Omit<CartItem, 'id' | 'qty'>) =>
   [i.slug, i.color ?? 0, i.magnets ?? 0, i.custom ? `${i.custom.w}x${i.custom.l}x${i.custom.h}` : ''].join('|');
-
-const DEMO_CART: CartItem[] = ([
-  { slug: 'place-board', color: 0, magnets: 4, colorTh: 'ฟ้า', name: 'Place Board', kind: 'readyFinish', unitPrice: 2590, kg: 3.5, img: '/images/place-board.jpg', qty: 1 },
-  { slug: 'target-box', color: 1, colorTh: 'ส้ม', name: 'Target Box', kind: 'readyFinish', unitPrice: 1590, kg: 2.6, img: '/images/target-box.jpg', qty: 1 },
-  { slug: 'flirt-pole', color: 2, colorTh: 'ชมพู', name: 'Flirt Pole', kind: 'ready', unitPrice: 790, kg: 0.6, img: '/images/flirt-pole.jpg', qty: 1 },
-] as Omit<CartItem, 'id'>[]).map((i) => ({ ...i, id: lineId(i) }));
 
 const CartContext = createContext<CartState | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const settings = useShopSettings();
-  const [items, setItems] = useState<CartItem[]>(DEMO_CART);
+  const [items, setItems] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // The cart lives in the browser so it survives reloads and language switches.
   useEffect(() => {
     try {
+      for (const k of OLD_KEYS) localStorage.removeItem(k);
       const saved = parseCart(localStorage.getItem(STORAGE_KEY));
       if (saved) setItems(saved);
     } catch {

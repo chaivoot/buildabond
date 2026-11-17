@@ -1,4 +1,4 @@
-import { SEED_CUSTOMERS, SEED_EN, SEED_ORDERS, SEED_PRODUCTS, SEED_REQUESTS, SEED_SETTINGS } from '../data/seed';
+import { SEED_EN, SEED_PRODUCTS, SEED_SETTINGS } from '../data/seed';
 
 /**
  * Tiny SQL layer.
@@ -181,16 +181,6 @@ async function migrate(d: Driver) {
       await d.query(`UPDATE products SET th = $3 WHERE slug = $1 AND th = $2`, [slug, from, to]);
     }
   });
-  // Demo customer so the email + phone address lookup can be tried right away.
-  await once(d, 'migration:customers-1', async () => {
-    for (const c of SEED_CUSTOMERS) {
-      await d.query(
-        `INSERT INTO customers (id, email, phone, name, street, subdistrict, district, province, postcode)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`,
-        [c.id, c.email, c.phone, c.name, c.street, c.subdistrict, c.district, c.province, c.postcode],
-      );
-    }
-  });
   // Link orders placed before customer history existed, by email or phone.
   await once(d, 'migration:customer-links-1', () => linkOrders(d));
   // Phone numbers saved before they were normalised (e.g. "+660818890911"): store them as 081-234-5678 / digits.
@@ -204,6 +194,15 @@ async function migrate(d: Driver) {
     for (const [slug, n] of [['place-board', 4], ['target-box', 2], ['slant-box', 2]] as const) {
       await d.query(`UPDATE products SET magnet_count = $2 WHERE slug = $1 AND magnet_count = 0`, [slug, n]);
     }
+  });
+  // Remove the demo orders, requests and customer that earlier versions seeded (before going live).
+  // Demo orders are the only ones with access_key 'demo'; real orders get a random key.
+  await once(d, 'migration:remove-demo-1', async () => {
+    await d.query(`DELETE FROM orders WHERE access_key = 'demo'`);
+    await d.query(`DELETE FROM requests WHERE id IN ('req-demo-1', 'req-demo-2')`);
+    await d.query(`UPDATE orders SET customer_id = NULL WHERE customer_id = 'cust-demo-1'`);
+    await d.query(`DELETE FROM customer_events WHERE customer_id = 'cust-demo-1'`);
+    await d.query(`DELETE FROM customers WHERE id = 'cust-demo-1'`);
   });
   // English copy for products seeded before the site was bilingual (only where none has been entered).
   await once(d, 'migration:en-1', async () => {
@@ -228,22 +227,6 @@ async function migrate(d: Driver) {
         p.colorsLabel, p.swatchesLabel, p.magnets, p.sku, p.stock, p.visible, json(p.detail), json(p.en), p.magnetCount],
     );
   }
-  for (const o of SEED_ORDERS) {
-    await d.query(
-      `INSERT INTO orders (id, access_key, created_at, name, phone, address, note, items, subtotal, shipping, total, kg, status,
-        slip_url, slip_at, confirmed_at, shipped_at, carrier, tracking)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) ON CONFLICT (id) DO NOTHING`,
-      [o.id, 'demo', o.createdAt, o.name, o.phone, o.address, o.note, json(o.items), o.subtotal, o.shipping, o.total, o.kg, o.status,
-        o.slipUrl, o.slipAt, o.confirmedAt, o.shippedAt, o.carrier, o.tracking],
-    );
-  }
-  for (const r of SEED_REQUESTS) {
-    await d.query(
-      `INSERT INTO requests (id, kind, created_at, status, name, contact, data) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING`,
-      [r.id, r.kind, r.createdAt, r.status, r.name, r.contact, json(r.data)],
-    );
-  }
-  await linkOrders(d);
 }
 
 // Kept on globalThis: Next.js may load this module more than once in a single server process
