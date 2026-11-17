@@ -1,46 +1,91 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
 import { css } from '../data/style';
-import { placeOrder } from '../server/actions/shop';
-import { provinceOptions } from '../lib/provinces';
 import { useI18n } from '../i18n/LocaleProvider';
 import { itemName, itemOptions } from '../lib/cartItem';
-import { CUSTOMER_FIELDS, loadCustomer, saveCustomer, type SavedCustomer } from '../lib/savedCustomer';
+import { provinceOptions } from '../lib/provinces';
+import { loadCustomer, saveCustomer, type SavedCustomer } from '../lib/savedCustomer';
+import { confirmCustomerChange, findReturningCustomer, placeOrder } from '../server/actions/shop';
 import './CheckoutPage.css';
 
+type Form = SavedCustomer & { note: string };
+const EMPTY: Form = { name: '', phone: '', email: '', street: '', subdistrict: '', district: '', province: 'กรุงเทพมหานคร', postcode: '', note: '' };
+
+/**
+ * Returning-customer state, driven by email + phone:
+ * match → address filled · phoneChanged / emailChanged → ask for the old value · verified → address filled, contact will update
+ */
+type Lookup =
+  | { s: 'idle' | 'checking' | 'new' | 'limited' }
+  | { s: 'match'; name: string }
+  | { s: 'phoneChanged' | 'emailChanged'; old: string; wrong?: boolean; busy?: boolean }
+  | { s: 'verifiedPhone'; oldPhone: string }
+  | { s: 'verifiedEmail'; oldEmail: string };
+
+const validEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+const validPhone = (s: string) => {
+  const d = s.replace(/\D/g, '');
+  return d.length >= 9 && d.length <= 11;
+};
 
 export function CheckoutPage() {
   const { lang, t } = useI18n();
   const c = t.checkout;
   const { items, count, subtotal, kg, shipping, total, clear } = useCart();
   const router = useRouter();
+  const [form, setForm] = useState<Form>(EMPTY);
+  const [remember, setRemember] = useState(true);
+  const [fromDevice, setFromDevice] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<Lookup>({ s: 'idle' });
+  const lastPair = useRef('');
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
-  // Details remembered from a previous order on this device (loaded after mount: localStorage is browser-only).
-  const [saved, setSaved] = useState<SavedCustomer | null>(null);
-  const [formKey, setFormKey] = useState(0);
   const empty = items.length === 0;
 
+  const set = (k: keyof Form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const fillAddress = (a: Partial<Form>) => setForm((f) => ({ ...f, ...a }));
+
+  // Details remembered on this device (localStorage is browser-only, so load after mount).
   useEffect(() => {
-    const c = loadCustomer();
-    if (c) {
-      setSaved(c);
-      setFormKey((k) => k + 1); // remount the form so the saved values become its defaults
+    const saved = loadCustomer();
+    if (saved) {
+      setForm((f) => ({ ...f, ...saved }));
+      setFromDevice(saved.name);
     }
   }, []);
 
-  const forget = () => {
-    saveCustomer(null);
-    setSaved(null);
-    setFormKey((k) => k + 1);
-  };
+  // When email + phone are both filled in, check whether this is a returning customer.
+  useEffect(() => {
+    const pair = `${form.email.trim().toLowerCase()}|${form.phone.replace(/\D/g, '')}`;
+    if (!validEmail(form.email) || !validPhone(form.phone)) {
+      lastPair.current = '';
+      setLookup({ s: 'idle' });
+      return;
+    }
+    if (pair === lastPair.current) return;
+    const timer = setTimeout(async () => {
+      lastPair.current = pair;
+      setLookup({ s: 'checking' });
+      const res = await findReturningCustomer(form.email, form.phone).catch(() => ({ status: 'new' as const }));
+      if (lastPair.current !== pair) return; // contact changed while checking
+      if (res.status === 'match') {
+        fillAddress(res.address);
+        setLookup({ s: 'match', name: res.address.name });
+      } else if (res.status === 'phoneChanged' || res.status === 'emailChanged') {
+        setLookup({ s: res.status, old: '' });
+      } else {
+        setLookup({ s: res.status });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.email, form.phone]);
 
   useEffect(() => {
     if (empty && !placing) router.replace('/cart');
@@ -48,20 +93,42 @@ export function CheckoutPage() {
 
   if (empty) return null;
 
+  const confirmChange = async () => {
+    if (lookup.s !== 'phoneChanged' && lookup.s !== 'emailChanged') return;
+    const old = lookup.s === 'phoneChanged' ? { phone: lookup.old } : { email: lookup.old };
+    setLookup({ ...lookup, busy: true, wrong: false });
+    const res = await confirmCustomerChange(form.email, form.phone, old).catch(() => ({ ok: false as const }));
+    if (res.ok) {
+      fillAddress(res.address);
+      setLookup(old.phone ? { s: 'verifiedPhone', oldPhone: old.phone } : { s: 'verifiedEmail', oldEmail: old.email! });
+    } else if ('limited' in res && res.limited) {
+      setLookup({ s: 'limited' });
+    } else {
+      setLookup({ ...lookup, busy: false, wrong: true });
+    }
+  };
+
+  const forgetDevice = () => {
+    saveCustomer(null);
+    setFromDevice(null);
+    setForm(EMPTY);
+    lastPair.current = '';
+    setLookup({ s: 'idle' });
+  };
+
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const v = (k: string) => String(f.get(k) ?? '').trim();
-    saveCustomer(f.get('remember') ? (Object.fromEntries(CUSTOMER_FIELDS.map((k) => [k, v(k)])) as unknown as SavedCustomer) : null);
+    const f = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v.trim()])) as Form;
+    const { note, ...customer } = f;
+    saveCustomer(remember ? customer : null);
     setPlacing(true);
     setError('');
     try {
       const res = await placeOrder({
-        name: v('name'),
-        phone: v('phone'),
-        email: v('email'),
-        address: [v('street'), v('subdistrict'), v('district'), v('province'), v('postcode')].filter(Boolean).join(' '),
-        note: v('note'),
+        ...customer,
+        note,
+        oldPhone: lookup.s === 'verifiedPhone' ? lookup.oldPhone : undefined,
+        oldEmail: lookup.s === 'verifiedEmail' ? lookup.oldEmail : undefined,
         lines: items.map(({ slug, qty, color, magnets, custom }) => ({ slug, qty, color, magnets, custom })),
       });
       if (!res.ok) {
@@ -77,6 +144,12 @@ export function CheckoutPage() {
     }
   };
 
+  const input = (k: keyof Form, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+    <input className="input" name={k} value={form[k]} onChange={(e) => set(k, e.target.value)} {...props} />
+  );
+
+  const changed = lookup.s === 'phoneChanged' || lookup.s === 'emailChanged' ? lookup : null;
+
   return (
     <>
       <SiteHeader variant="simple" sticky={false} right={<Link href="/cart" style={{ fontSize: 14, color: 'var(--ink)' }}>{c.backToCart}</Link>} />
@@ -91,38 +164,90 @@ export function CheckoutPage() {
           ))}
         </ol>
 
-        <form key={formKey} id="checkout" className="split" style={{ marginTop: 28 }} onSubmit={submit}>
+        <form id="checkout" className="split" style={{ marginTop: 28 }} onSubmit={submit}>
           <div className="split__main stack" style={css({ '--gap': '32px' })}>
             <section>
-              <h2 className="num-display" style={{ fontWeight: 400, fontSize: 24 }}>{c.address}</h2>
-              {saved && (
-                <p className="checkout-welcome">
-                  {c.welcomeBack(saved.name)}{' '}
-                  <button type="button" className="text-btn text-btn--link" style={{ minHeight: 0, padding: 0, fontSize: 'inherit' }} onClick={forget}>{c.notYou}</button>
+              <h2 className="num-display" style={{ fontWeight: 400, fontSize: 24 }}>{c.contact}</h2>
+              <p className="small" style={{ marginTop: 4 }}>{c.contactHint}</p>
+              {fromDevice && lookup.s !== 'match' && (
+                <p className="checkout-note checkout-note--ok">
+                  {c.welcomeBack(fromDevice)}{' '}
+                  <button type="button" className="text-btn text-btn--link checkout-note__link" onClick={forgetDevice}>{c.notYou}</button>
                 </p>
               )}
               <div className="auto-grid" style={css({ '--min': '240px', '--gap': '14px', marginTop: 16 })}>
-                <label className="field">{c.fullName}<input className="input" name="name" type="text" autoComplete="name" required defaultValue={saved?.name} /></label>
+                <label className="field">
+                  {c.email}
+                  <span className="field__hint">{c.emailHint}</span>
+                  {input('email', { type: 'email', autoComplete: 'email', required: true })}
+                </label>
                 <label className="field">
                   {c.phone}
                   <span className="field__hint">{c.phoneHint}</span>
-                  <input className="input" name="phone" type="tel" autoComplete="tel" required defaultValue={saved?.phone} />
+                  {input('phone', { type: 'tel', autoComplete: 'tel', required: true })}
                 </label>
-                <label className="field span-all">
-                  {c.email}
-                  <span className="field__hint">{c.emailHint}</span>
-                  <input className="input" name="email" type="email" autoComplete="email" required defaultValue={saved?.email} />
+              </div>
+
+              <div aria-live="polite">
+                {lookup.s === 'checking' && <p className="small" style={{ marginTop: 10 }}>{c.checking}</p>}
+                {lookup.s === 'match' && (
+                  <p className="checkout-note checkout-note--ok">
+                    {c.found(lookup.name)}{' '}
+                    {fromDevice && <button type="button" className="text-btn text-btn--link checkout-note__link" onClick={forgetDevice}>{c.notYou}</button>}
+                  </p>
+                )}
+                {lookup.s === 'verifiedPhone' && <p className="checkout-note checkout-note--ok">{c.verifiedPhone}</p>}
+                {lookup.s === 'verifiedEmail' && <p className="checkout-note checkout-note--ok">{c.verifiedEmail}</p>}
+                {lookup.s === 'limited' && <p className="checkout-note checkout-note--warn">{c.limited}</p>}
+                {changed && (
+                  <div className="checkout-note checkout-note--ask">
+                    <p className="strong">{changed.s === 'phoneChanged' ? c.phoneChangedTitle : c.emailChangedTitle}</p>
+                    <p style={{ marginTop: 4 }}>{changed.s === 'phoneChanged' ? c.phoneChangedBody : c.emailChangedBody}</p>
+                    <div className="checkout-verify">
+                      <label className="field" style={{ flex: '1 1 200px' }}>
+                        {changed.s === 'phoneChanged' ? c.oldPhone : c.oldEmail}
+                        <input
+                          className="input"
+                          type={changed.s === 'phoneChanged' ? 'tel' : 'email'}
+                          value={changed.old}
+                          onChange={(e) => setLookup({ ...changed, old: e.target.value, wrong: false })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              confirmChange();
+                            }
+                          }}
+                        />
+                      </label>
+                      <button type="button" className="btn btn--primary btn--square" style={{ height: 50 }} disabled={!changed.old.trim() || changed.busy} onClick={confirmChange}>
+                        {changed.busy ? c.checking : c.confirmChange}
+                      </button>
+                    </div>
+                    {changed.wrong && <p role="alert" style={{ marginTop: 8, color: '#8e1f0b' }}>{c.wrongOld}</p>}
+                    <button type="button" className="text-btn" style={{ marginTop: 4 }} onClick={() => setLookup({ s: 'new' })}>{c.notChanged}</button>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="num-display" style={{ fontWeight: 400, fontSize: 24 }}>{c.address}</h2>
+              <div className="auto-grid" style={css({ '--min': '240px', '--gap': '14px', marginTop: 16 })}>
+                <label className="field span-all">{c.fullName}{input('name', { type: 'text', autoComplete: 'name', required: true })}</label>
+                <label className="field span-all">{c.street}
+                  <textarea className="input" name="street" rows={2} autoComplete="street-address" required value={form.street} onChange={(e) => set('street', e.target.value)} />
                 </label>
-                <label className="field span-all">{c.street}<textarea className="input" name="street" rows={2} autoComplete="street-address" required defaultValue={saved?.street} /></label>
-                <label className="field">{c.subdistrict}<input className="input" name="subdistrict" type="text" required defaultValue={saved?.subdistrict} /></label>
-                <label className="field">{c.district}<input className="input" name="district" type="text" required defaultValue={saved?.district} /></label>
+                <label className="field">{c.subdistrict}{input('subdistrict', { type: 'text', required: true })}</label>
+                <label className="field">{c.district}{input('district', { type: 'text', required: true })}</label>
                 <label className="field">{c.province}
-                  <select className="input" name="province" defaultValue={saved?.province}>{provinceOptions(lang).map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select>
+                  <select className="input" name="province" value={form.province} onChange={(e) => set('province', e.target.value)}>
+                    {provinceOptions(lang).map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
                 </label>
-                <label className="field">{c.postcode}<input className="input" name="postcode" type="text" inputMode="numeric" autoComplete="postal-code" pattern="[0-9]{5}" required defaultValue={saved?.postcode} /></label>
-                <label className="field span-all">{c.note}<input className="input" name="note" type="text" /></label>
+                <label className="field">{c.postcode}{input('postcode', { type: 'text', inputMode: 'numeric', autoComplete: 'postal-code', pattern: '[0-9]{5}', required: true })}</label>
+                <label className="field span-all">{c.note}{input('note', { type: 'text' })}</label>
                 <label className="check-row span-all">
-                  <input type="checkbox" name="remember" defaultChecked />
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
                   {c.remember}
                 </label>
               </div>

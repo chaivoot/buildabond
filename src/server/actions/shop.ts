@@ -1,10 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { priceLine, type CartLineInput } from '../../lib/pricing';
 import { shippingFee } from '../../lib/shipping';
 import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
+import { allowAttempt, isEmail, isPhone, lookupCustomer, normalizeEmail, normalizePhone, recordCustomer, verifiedAddress, type CustomerAddress, type Lookup } from '../customers';
 import { attachSlip, createOrder, findOrderByContact, getOrderWithKey } from '../orders';
 import { listProducts } from '../products';
 import { createRequest } from '../requests';
@@ -15,9 +17,16 @@ export interface CheckoutInput {
   name: string;
   phone: string;
   email: string;
-  address: string;
+  street: string;
+  subdistrict: string;
+  district: string;
+  province: string;
+  postcode: string;
   note: string;
   lines: CartLineInput[];
+  /** Set when the customer confirmed a changed phone (old phone) or changed email (old email). */
+  oldPhone?: string;
+  oldEmail?: string;
 }
 
 /** Errors are codes; the browser shows them in the visitor's language (dictionary: errors). */
@@ -32,10 +41,18 @@ const clean = (s: unknown, max = 500) => String(s ?? '').trim().slice(0, max);
 export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: string; key: string }>> {
   const name = clean(input.name, 120);
   const phone = clean(input.phone, 40);
-  const address = clean(input.address, 600);
+  const addr: CustomerAddress = {
+    name,
+    street: clean(input.street, 300),
+    subdistrict: clean(input.subdistrict, 100),
+    district: clean(input.district, 100),
+    province: clean(input.province, 100),
+    postcode: clean(input.postcode, 10),
+  };
+  const address = [addr.street, addr.subdistrict, addr.district, addr.province, addr.postcode].filter(Boolean).join(' ');
   const email = clean(input.email, 200).toLowerCase();
   if (!name || !phone || !address || !email) return { ok: false, error: 'missingFields' };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'invalidEmail' };
+  if (!isEmail(email)) return { ok: false, error: 'invalidEmail' };
   if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 50) return { ok: false, error: 'emptyCart' };
 
   const [products, settings] = await Promise.all([listProducts(), getSettings()]);
@@ -51,6 +68,8 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const kg = Math.round(items.reduce((a, i) => a + i.kg * i.qty, 0) * 10) / 10;
   const shipping = shippingFee(kg, settings.shipping);
   const { id, key } = await createOrder({ name, phone, email, address, note: clean(input.note), items, subtotal, shipping, total: subtotal + shipping, kg });
+  // Remember this customer's address for next time (keyed by email + phone).
+  await recordCustomer(email, phone, addr, { phone: clean(input.oldPhone, 40) || undefined, email: clean(input.oldEmail, 200) || undefined }).catch(() => {});
   revalidatePath('/admin');
   return { ok: true, id, key };
 }
@@ -93,4 +112,36 @@ export async function submitRequest(kind: 'custom' | 'business', form: FormData)
   await createRequest(kind, name, contact, data);
   revalidatePath('/admin/requests');
   return { ok: true };
+}
+
+/* ---------- Returning customers (email + phone) ---------- */
+
+async function clientIp(): Promise<string> {
+  const h = await headers();
+  return h.get('x-forwarded-for')?.split(',')[0].trim() || h.get('x-real-ip') || 'unknown';
+}
+
+export type CustomerLookup = Lookup | { status: 'limited' };
+
+/** Checks email + phone at checkout. Returns the saved address only when both belong to the same customer. */
+export async function findReturningCustomer(email: string, phone: string): Promise<CustomerLookup> {
+  const e = normalizeEmail(clean(email, 200));
+  const p = normalizePhone(clean(phone, 40));
+  if (!isEmail(e) || !isPhone(p)) return { status: 'new' };
+  if (!(await allowAttempt(await clientIp()))) return { status: 'limited' };
+  return lookupCustomer(e, p);
+}
+
+/** Confirms a changed phone (give the old phone) or changed email (give the old email); returns the saved address. */
+export async function confirmCustomerChange(
+  email: string,
+  phone: string,
+  old: { phone?: string; email?: string },
+): Promise<{ ok: true; address: CustomerAddress } | { ok: false; limited?: boolean }> {
+  if (!(await allowAttempt(await clientIp()))) return { ok: false, limited: true };
+  const address = await verifiedAddress(clean(email, 200), clean(phone, 40), {
+    phone: old.phone ? clean(old.phone, 40) : undefined,
+    email: old.email ? clean(old.email, 200) : undefined,
+  });
+  return address ? { ok: true, address } : { ok: false };
 }

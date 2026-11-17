@@ -1,4 +1,4 @@
-import { SEED_EN, SEED_ORDERS, SEED_PRODUCTS, SEED_REQUESTS, SEED_SETTINGS } from '../data/seed';
+import { SEED_CUSTOMERS, SEED_EN, SEED_ORDERS, SEED_PRODUCTS, SEED_REQUESTS, SEED_SETTINGS } from '../data/seed';
 
 /**
  * Tiny SQL layer.
@@ -93,6 +93,21 @@ const SCHEMA = [
   `CREATE SEQUENCE IF NOT EXISTS order_seq START 43`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS en jsonb NOT NULL DEFAULT '{}'`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS email text NOT NULL DEFAULT ''`,
+  `CREATE TABLE IF NOT EXISTS customers (
+    id text PRIMARY KEY,
+    email text NOT NULL UNIQUE,
+    phone text NOT NULL UNIQUE,
+    name text NOT NULL DEFAULT '',
+    street text NOT NULL DEFAULT '',
+    subdistrict text NOT NULL DEFAULT '',
+    district text NOT NULL DEFAULT '',
+    province text NOT NULL DEFAULT '',
+    postcode text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS lookup_attempts (ip text NOT NULL, at timestamptz NOT NULL DEFAULT now())`,
+  `CREATE INDEX IF NOT EXISTS lookup_attempts_ip_at ON lookup_attempts (ip, at)`,
 ];
 
 const json = (v: unknown) => JSON.stringify(v);
@@ -117,6 +132,16 @@ async function migrate(d: Driver) {
   await once(d, 'migration:names-1', async () => {
     for (const [slug, from, to] of CONTENT_FIXES) {
       await d.query(`UPDATE products SET th = $3 WHERE slug = $1 AND th = $2`, [slug, from, to]);
+    }
+  });
+  // Demo customer so the email + phone address lookup can be tried right away.
+  await once(d, 'migration:customers-1', async () => {
+    for (const c of SEED_CUSTOMERS) {
+      await d.query(
+        `INSERT INTO customers (id, email, phone, name, street, subdistrict, district, province, postcode)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`,
+        [c.id, c.email, c.phone, c.name, c.street, c.subdistrict, c.district, c.province, c.postcode],
+      );
     }
   });
   // English copy for products seeded before the site was bilingual (only where none has been entered).

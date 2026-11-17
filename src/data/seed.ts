@@ -182,3 +182,11 @@ export const SEED_REQUESTS: ShopRequest[] = [
   { id: 'req-demo-1', kind: 'custom', createdAt: '2026-11-16T10:20:00+07:00', status: 'ใหม่', name: 'ปิยะพงษ์ เดชา', contact: '084-221-7788', data: { 'ขนาด (กว้าง×ยาว×สูง)': '90 × 60 × 15 cm', 'ขนาดรวม': '165 cm', 'สีผิวยาง': 'ผสม', 'ใช้ทำกิจกรรม': 'ใช้ในคลาสฟิตเนสหมา อยากได้แท่นยืนกว้าง ๆ' } },
   { id: 'req-demo-2', kind: 'business', createdAt: '2026-11-15T14:05:00+07:00', status: 'ติดต่อแล้ว', name: 'Happy Paws Pet Shop', contact: '02-555-0199 · LINE @happypaws', data: { 'ประเภทธุรกิจ': 'ร้านค้าสัตว์เลี้ยง', 'ผู้ติดต่อ': 'คุณมินตรา', 'อีเมล': 'contact@example.com', 'สนใจ': 'ซื้อส่ง, Dropship', 'รายละเอียด': 'สนใจ Place Board และ Target Box อย่างละ 10 ชิ้น' } },
 ];
+
+/** Demo customer (phone stored as digits, email lowercase). Try 081-234-5678 + natthakan@example.com at checkout. */
+export const SEED_CUSTOMERS = [
+  {
+    id: 'cust-demo-1', email: 'natthakan@example.com', phone: '0812345678', name: 'ณัฐกานต์ ใจดี',
+    street: '99/12 ซอยสุขุมวิท 50', subdistrict: 'พระโขนง', district: 'คลองเตย', province: 'กรุงเทพมหานคร', postcode: '10260',
+  },
+];
