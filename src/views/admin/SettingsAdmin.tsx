@@ -73,8 +73,7 @@ export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
         <section className="admin-card">
           <h2>แม่เหล็ก</h2>
           <div className="admin-grid">
-            <label className="field">ราคาต่อชิ้น (บาท)<input className="input" type="number" min={0} value={s.magnetPrice} onChange={(e) => patch({ magnetPrice: Number(e.target.value) })} /></label>
-            <label className="field">เลือกได้สูงสุด (ชิ้น)<input className="input" type="number" min={0} max={20} value={s.maxMagnets} onChange={(e) => patch({ maxMagnets: Number(e.target.value) })} /></label>
+            <label className="field">ราคาแม่เหล็กต่อชิ้น (บาท)<span className="field__hint">ลูกค้าที่เลือกเพิ่มแม่เหล็ก จ่าย จำนวนของสินค้านั้น × ราคานี้ ตั้งจำนวนในหน้าแก้สินค้า</span><input className="input" type="number" min={0} value={s.magnetPrice} onChange={(e) => patch({ magnetPrice: Number(e.target.value) })} /></label>
           </div>
         </section>
       </div>

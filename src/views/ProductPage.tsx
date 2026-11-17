@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { ColorPicker } from '../components/ColorPicker';
 import { CheckIcon, ClockIcon, TruckIcon } from '../components/Icons';
 import { MiniProductCard } from '../components/ProductTile';
-import { QtyStepper } from '../components/QtyStepper';
 import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
@@ -30,11 +29,13 @@ export function ProductPage({ product: p, related }: { product: Product; related
   const { add, openDrawer } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
   const [color, setColor] = useState(0);
-  const [magnets, setMagnets] = useState(0);
+  const [withMagnets, setWithMagnets] = useState(false);
   const inStock = p.stock === 'ready';
   const hasColors = p.colors.length > 0;
 
   const gallery = d.gallery?.length ? d.gallery : p.img ? [{ src: p.img, alt: p.name }] : [];
+  const offersMagnets = p.magnets && p.magnetCount > 0;
+  const magnets = offersMagnets && withMagnets ? p.magnetCount : 0;
   const line = { slug: p.slug, qty: 1, color, magnets };
   const priced = priceLine(line, p, settings);
   const total = priced?.unitPrice ?? p.price;
@@ -48,7 +49,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
     const c = hasColors ? p.colors[color] : undefined;
     add({
       ...line,
-      magnets: p.magnets ? magnets : 0,
+      magnets,
       colorTh: c ? c.labelTh ?? c.label : undefined,
       name: p.name,
       kind: stockKind(p),
@@ -109,14 +110,15 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
             {hasColors && <ColorPicker legend={p.colorsLabel || pt.colorFallback} colors={p.colors} value={color} onChange={setColor} />}
 
-            {p.magnets && (
-              <div className="row-between">
-                <div>
-                  <p className="strong" style={{ fontSize: 15 }}>{pt.magnetsTitle}</p>
-                  <p className="small" style={{ marginTop: 2 }}>{(p.slug.includes('board') ? pt.magnetsHintBoard : pt.magnetsHintBase)(baht(settings.magnetPrice))}</p>
-                </div>
-                <QtyStepper value={magnets} onChange={setMagnets} min={0} max={settings.maxMagnets} decLabel={pt.magnetsDec} incLabel={pt.magnetsInc} />
-              </div>
+            {offersMagnets && (
+              <label className="magnet-option" data-on={withMagnets}>
+                <input type="checkbox" checked={withMagnets} onChange={(e) => setWithMagnets(e.target.checked)} />
+                <span className="magnet-option__text">
+                  <span className="strong">{pt.magnetsTitle(p.magnetCount)}</span>
+                  <span className="small">{p.slug.includes('board') ? pt.magnetsHintBoard : pt.magnetsHintBase}</span>
+                </span>
+                <span className="magnet-option__price">+{baht(p.magnetCount * settings.magnetPrice)}</span>
+              </label>
             )}
 
             <div className="stack">

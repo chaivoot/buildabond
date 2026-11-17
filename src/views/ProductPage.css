@@ -27,3 +27,12 @@
 
 .pdp-related { margin-top: 20px; padding: 0 16px 6px; display: flex; gap: 12px; overflow-x: auto; }
 .pdp-related > * { flex: 0 0 200px; }
+
+.magnet-option {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: 14px;
+  cursor: pointer; background: var(--white);
+}
+.magnet-option[data-on='true'] { border: 2px solid var(--ink); padding: 13px 15px; }
+.magnet-option input { width: 20px; height: 20px; margin: 0; accent-color: var(--ink); flex: none; }
+.magnet-option__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.magnet-option__price { font-weight: 600; white-space: nowrap; }

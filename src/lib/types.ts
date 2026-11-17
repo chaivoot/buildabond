@@ -63,8 +63,10 @@ export interface Product {
   colors: ColorOption[];
   colorsLabel: string;
   swatchesLabel: string;
-  /** Takes under-board magnets. */
+  /** Offers magnets as an optional add-on (customer chooses yes/no). */
   magnets: boolean;
+  /** How many magnets this product needs when the add-on is chosen. */
+  magnetCount: number;
   sku: string;
   stock: StockStatus;
   visible: boolean;
@@ -84,6 +86,7 @@ export interface ShopSettings {
   /** PromptPay phone or national ID; empty hides the QR. */
   promptpay: string;
   magnetPrice: number;
+  /** @deprecated magnets are now a fixed count per product (Product.magnetCount). */
   maxMagnets: number;
   shipping: ShippingTier[];
 }
