@@ -10,7 +10,7 @@ npm run dev      # http://localhost:3000
 npm run build
 ```
 
-Product pages are prerendered at build time with their own title, description and Open Graph image. `sitemap.xml` and `robots.txt` are generated. Set `NEXT_PUBLIC_SITE_URL` in Vercel once a custom domain is attached so link previews and the sitemap use it.
+Product pages are prerendered at build time with their own title, description and Open Graph image. `sitemap.xml` and `robots.txt` are generated. Production uses https://www.build-a-bond.com for canonical links, link previews and the sitemap (`src/data/site.ts`); set `NEXT_PUBLIC_SITE_URL` only to override it.
 
 ## Setup on Vercel
 
