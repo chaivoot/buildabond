@@ -95,8 +95,20 @@ const SCHEMA = [
 
 const json = (v: unknown) => JSON.stringify(v);
 
+/**
+ * Copy fixes for databases seeded by an earlier version.
+ * Each only applies while the text is still the old seed value, so admin edits are never overwritten.
+ */
+const CONTENT_FIXES: [slug: string, from: string, to: string][] = [
+  ['target-box', 'กล่องยืน สูง 6 / 10 cm', 'สูง 6 / 10 cm'],
+  ['slant-box', 'ฐานเอียง 15° / 20°', 'มุมเอียง 15° / 20°'],
+];
+
 async function migrate(d: Driver) {
   for (const stmt of SCHEMA) await d.query(stmt);
+  for (const [slug, from, to] of CONTENT_FIXES) {
+    await d.query(`UPDATE products SET th = $3 WHERE slug = $1 AND th = $2`, [slug, from, to]);
+  }
 
   // Seed exactly once: whoever inserts the marker row does the seeding.
   const claimed = await d.query(`INSERT INTO settings (key, value) VALUES ('seeded', 'true') ON CONFLICT (key) DO NOTHING RETURNING key`);
