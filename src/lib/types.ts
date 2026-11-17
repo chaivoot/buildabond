@@ -104,6 +104,7 @@ export interface Order {
   createdAt: string;
   name: string;
   phone: string;
+  email: string;
   address: string;
   note: string;
   items: OrderItem[];

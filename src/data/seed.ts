@@ -164,7 +164,7 @@ export const SEED_SETTINGS: ShopSettings = {
 const order = (o: Partial<Order> & Pick<Order, 'id' | 'name' | 'phone' | 'address' | 'items' | 'kg' | 'status' | 'createdAt'>): Order => {
   const subtotal = o.items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
   const shipping = o.kg < 1 ? 50 : o.kg < 5 ? 100 : 200;
-  return { note: '', slipUrl: '', slipAt: null, confirmedAt: null, shippedAt: null, carrier: '', tracking: '', subtotal, shipping, total: subtotal + shipping, ...o };
+  return { email: '', note: '', slipUrl: '', slipAt: null, confirmedAt: null, shippedAt: null, carrier: '', tracking: '', subtotal, shipping, total: subtotal + shipping, ...o };
 };
 const item = (slug: string, name: string, opt: string, unitPrice: number, kg: number) => ({ slug, name, opt, unitPrice, qty: 1, kg });
 

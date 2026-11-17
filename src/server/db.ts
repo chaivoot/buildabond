@@ -92,6 +92,7 @@ const SCHEMA = [
   )`,
   `CREATE SEQUENCE IF NOT EXISTS order_seq START 43`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS en jsonb NOT NULL DEFAULT '{}'`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS email text NOT NULL DEFAULT ''`,
 ];
 
 const json = (v: unknown) => JSON.stringify(v);

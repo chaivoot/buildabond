@@ -145,7 +145,7 @@ export function OrderPlacedPage({ order, accessKey, bank, qrSvg }: Props) {
           <Link href="/" className="btn btn--ghost btn--block">{o.homeCta}</Link>
         </div>
         <p className="small" style={{ marginTop: 18, lineHeight: 1.7 }}>
-          {o.keepNote(order.phone)}
+          {o.keepNote(order.phone, order.email)}
         </p>
       </main>
     </>

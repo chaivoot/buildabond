@@ -12,6 +12,7 @@ import { placeOrder } from '../server/actions/shop';
 import { provinceOptions } from '../lib/provinces';
 import { useI18n } from '../i18n/LocaleProvider';
 import { itemName, itemOptions } from '../lib/cartItem';
+import { CUSTOMER_FIELDS, loadCustomer, saveCustomer, type SavedCustomer } from '../lib/savedCustomer';
 import './CheckoutPage.css';
 
 
@@ -22,7 +23,24 @@ export function CheckoutPage() {
   const router = useRouter();
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
+  // Details remembered from a previous order on this device (loaded after mount: localStorage is browser-only).
+  const [saved, setSaved] = useState<SavedCustomer | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const empty = items.length === 0;
+
+  useEffect(() => {
+    const c = loadCustomer();
+    if (c) {
+      setSaved(c);
+      setFormKey((k) => k + 1); // remount the form so the saved values become its defaults
+    }
+  }, []);
+
+  const forget = () => {
+    saveCustomer(null);
+    setSaved(null);
+    setFormKey((k) => k + 1);
+  };
 
   useEffect(() => {
     if (empty && !placing) router.replace('/cart');
@@ -34,12 +52,14 @@ export function CheckoutPage() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const v = (k: string) => String(f.get(k) ?? '').trim();
+    saveCustomer(f.get('remember') ? (Object.fromEntries(CUSTOMER_FIELDS.map((k) => [k, v(k)])) as unknown as SavedCustomer) : null);
     setPlacing(true);
     setError('');
     try {
       const res = await placeOrder({
         name: v('name'),
         phone: v('phone'),
+        email: v('email'),
         address: [v('street'), v('subdistrict'), v('district'), v('province'), v('postcode')].filter(Boolean).join(' '),
         note: v('note'),
         lines: items.map(({ slug, qty, color, magnets, custom }) => ({ slug, qty, color, magnets, custom })),
@@ -71,25 +91,40 @@ export function CheckoutPage() {
           ))}
         </ol>
 
-        <form id="checkout" className="split" style={{ marginTop: 28 }} onSubmit={submit}>
+        <form key={formKey} id="checkout" className="split" style={{ marginTop: 28 }} onSubmit={submit}>
           <div className="split__main stack" style={css({ '--gap': '32px' })}>
             <section>
               <h2 className="num-display" style={{ fontWeight: 400, fontSize: 24 }}>{c.address}</h2>
+              {saved && (
+                <p className="checkout-welcome">
+                  {c.welcomeBack(saved.name)}{' '}
+                  <button type="button" className="text-btn text-btn--link" style={{ minHeight: 0, padding: 0, fontSize: 'inherit' }} onClick={forget}>{c.notYou}</button>
+                </p>
+              )}
               <div className="auto-grid" style={css({ '--min': '240px', '--gap': '14px', marginTop: 16 })}>
-                <label className="field">{c.fullName}<input className="input" name="name" type="text" autoComplete="name" required /></label>
+                <label className="field">{c.fullName}<input className="input" name="name" type="text" autoComplete="name" required defaultValue={saved?.name} /></label>
                 <label className="field">
                   {c.phone}
                   <span className="field__hint">{c.phoneHint}</span>
-                  <input className="input" name="phone" type="tel" autoComplete="tel" required />
+                  <input className="input" name="phone" type="tel" autoComplete="tel" required defaultValue={saved?.phone} />
                 </label>
-                <label className="field span-all">{c.street}<textarea className="input" name="street" rows={2} autoComplete="street-address" required /></label>
-                <label className="field">{c.subdistrict}<input className="input" name="subdistrict" type="text" required /></label>
-                <label className="field">{c.district}<input className="input" name="district" type="text" required /></label>
+                <label className="field span-all">
+                  {c.email}
+                  <span className="field__hint">{c.emailHint}</span>
+                  <input className="input" name="email" type="email" autoComplete="email" required defaultValue={saved?.email} />
+                </label>
+                <label className="field span-all">{c.street}<textarea className="input" name="street" rows={2} autoComplete="street-address" required defaultValue={saved?.street} /></label>
+                <label className="field">{c.subdistrict}<input className="input" name="subdistrict" type="text" required defaultValue={saved?.subdistrict} /></label>
+                <label className="field">{c.district}<input className="input" name="district" type="text" required defaultValue={saved?.district} /></label>
                 <label className="field">{c.province}
-                  <select className="input" name="province">{provinceOptions(lang).map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select>
+                  <select className="input" name="province" defaultValue={saved?.province}>{provinceOptions(lang).map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select>
                 </label>
-                <label className="field">{c.postcode}<input className="input" name="postcode" type="text" inputMode="numeric" autoComplete="postal-code" pattern="[0-9]{5}" required /></label>
+                <label className="field">{c.postcode}<input className="input" name="postcode" type="text" inputMode="numeric" autoComplete="postal-code" pattern="[0-9]{5}" required defaultValue={saved?.postcode} /></label>
                 <label className="field span-all">{c.note}<input className="input" name="note" type="text" /></label>
+                <label className="check-row span-all">
+                  <input type="checkbox" name="remember" defaultChecked />
+                  {c.remember}
+                </label>
               </div>
             </section>
 

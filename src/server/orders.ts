@@ -2,7 +2,7 @@ import type { Order, OrderItem, OrderStatus } from '../lib/types';
 import { sql, toJson } from './db';
 
 interface Row {
-  id: string; access_key: string; created_at: string | Date; name: string; phone: string; address: string; note: string;
+  id: string; access_key: string; created_at: string | Date; name: string; phone: string; email: string | null; address: string; note: string;
   items: OrderItem[]; subtotal: number; shipping: number; total: number; kg: number; status: string; slip_url: string;
   slip_at: string | Date | null; confirmed_at: string | Date | null; shipped_at: string | Date | null; carrier: string; tracking: string;
 }
@@ -10,7 +10,7 @@ interface Row {
 const iso = (v: string | Date | null) => (v ? new Date(v).toISOString() : null);
 
 const fromRow = (r: Row): Order => ({
-  id: r.id, createdAt: iso(r.created_at)!, name: r.name, phone: r.phone, address: r.address, note: r.note, items: r.items,
+  id: r.id, createdAt: iso(r.created_at)!, name: r.name, phone: r.phone, email: r.email ?? '', address: r.address, note: r.note, items: r.items,
   subtotal: r.subtotal, shipping: r.shipping, total: r.total, kg: Number(r.kg), status: r.status as OrderStatus, slipUrl: r.slip_url,
   slipAt: iso(r.slip_at), confirmedAt: iso(r.confirmed_at), shippedAt: iso(r.shipped_at), carrier: r.carrier, tracking: r.tracking,
 });
@@ -32,14 +32,17 @@ export async function getOrderWithKey(id: string, key: string): Promise<Order | 
 
 const digits = (s: string) => s.replace(/\D/g, '');
 
-/** Order lookup for the tracking page: order number + the phone used at checkout. */
-export async function findOrderByPhone(id: string, phone: string): Promise<Order | null> {
+/** Order lookup for the tracking page: order number + the phone or email used at checkout. */
+export async function findOrderByContact(id: string, contact: string): Promise<Order | null> {
   const o = await getOrder(id.trim().toUpperCase());
-  return o && digits(o.phone) === digits(phone) && digits(phone) !== '' ? o : null;
+  if (!o) return null;
+  const c = contact.trim().toLowerCase();
+  if (c.includes('@')) return o.email && o.email.toLowerCase() === c ? o : null;
+  return digits(o.phone) === digits(c) && digits(c) !== '' ? o : null;
 }
 
 export interface NewOrder {
-  name: string; phone: string; address: string; note: string; items: OrderItem[]; subtotal: number; shipping: number; total: number; kg: number;
+  name: string; phone: string; email: string; address: string; note: string; items: OrderItem[]; subtotal: number; shipping: number; total: number; kg: number;
 }
 
 export async function createOrder(o: NewOrder): Promise<{ id: string; key: string }> {
@@ -49,9 +52,9 @@ export async function createOrder(o: NewOrder): Promise<{ id: string; key: strin
   const id = `BB-${ymd}-${String(n).padStart(4, '0')}`;
   const key = crypto.randomUUID().replace(/-/g, '').slice(0, 20);
   await sql(
-    `INSERT INTO orders (id, access_key, name, phone, address, note, items, subtotal, shipping, total, kg, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'รอชำระ')`,
-    [id, key, o.name, o.phone, o.address, o.note, toJson(o.items), o.subtotal, o.shipping, o.total, o.kg],
+    `INSERT INTO orders (id, access_key, name, phone, email, address, note, items, subtotal, shipping, total, kg, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'รอชำระ')`,
+    [id, key, o.name, o.phone, o.email, o.address, o.note, toJson(o.items), o.subtotal, o.shipping, o.total, o.kg],
   );
   return { id, key };
 }

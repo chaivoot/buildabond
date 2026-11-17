@@ -47,7 +47,7 @@ export function TrackPage({ initialId, initialPhone, initialResult }: Props) {
 
         <form onSubmit={submit} className="stack" style={{ marginTop: 22, gap: 14 }}>
           <label className="field">{tr.orderNo}<input className="input" style={{ height: 52, fontSize: 17, letterSpacing: '0.02em' }} type="text" required value={id} onChange={(e) => setId(e.target.value)} /></label>
-          <label className="field">{tr.phone}<input className="input" style={{ height: 52, fontSize: 17 }} type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
+          <label className="field">{tr.phone}<input className="input" style={{ height: 52, fontSize: 17 }} type="text" autoComplete="email" required value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
           <button type="submit" className="btn btn--primary btn--lg" disabled={loading}>{loading ? tr.searching : tr.submit}</button>
         </form>
 

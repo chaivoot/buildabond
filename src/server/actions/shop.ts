@@ -5,7 +5,7 @@ import { priceLine, type CartLineInput } from '../../lib/pricing';
 import { shippingFee } from '../../lib/shipping';
 import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
-import { attachSlip, createOrder, findOrderByPhone, getOrderWithKey } from '../orders';
+import { attachSlip, createOrder, findOrderByContact, getOrderWithKey } from '../orders';
 import { listProducts } from '../products';
 import { createRequest } from '../requests';
 import { getSettings } from '../settings';
@@ -14,6 +14,7 @@ import { storeImage } from '../upload';
 export interface CheckoutInput {
   name: string;
   phone: string;
+  email: string;
   address: string;
   note: string;
   lines: CartLineInput[];
@@ -32,7 +33,9 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const name = clean(input.name, 120);
   const phone = clean(input.phone, 40);
   const address = clean(input.address, 600);
-  if (!name || !phone || !address) return { ok: false, error: 'missingFields' };
+  const email = clean(input.email, 200).toLowerCase();
+  if (!name || !phone || !address || !email) return { ok: false, error: 'missingFields' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'invalidEmail' };
   if (!Array.isArray(input.lines) || input.lines.length === 0 || input.lines.length > 50) return { ok: false, error: 'emptyCart' };
 
   const [products, settings] = await Promise.all([listProducts(), getSettings()]);
@@ -47,7 +50,7 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const subtotal = items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
   const kg = Math.round(items.reduce((a, i) => a + i.kg * i.qty, 0) * 10) / 10;
   const shipping = shippingFee(kg, settings.shipping);
-  const { id, key } = await createOrder({ name, phone, address, note: clean(input.note), items, subtotal, shipping, total: subtotal + shipping, kg });
+  const { id, key } = await createOrder({ name, phone, email, address, note: clean(input.note), items, subtotal, shipping, total: subtotal + shipping, kg });
   revalidatePath('/admin');
   return { ok: true, id, key };
 }
@@ -68,8 +71,9 @@ export async function uploadSlip(id: string, key: string, form: FormData): Promi
 /** Fields the tracking page may show (no address). */
 export type TrackedOrder = Pick<Order, 'id' | 'createdAt' | 'items' | 'total' | 'status' | 'slipAt' | 'confirmedAt' | 'shippedAt' | 'carrier' | 'tracking'>;
 
-export async function trackOrder(id: string, phone: string): Promise<TrackedOrder | null> {
-  const o = await findOrderByPhone(clean(id, 40), clean(phone, 40));
+/** `contact` is the phone number or email used at checkout. */
+export async function trackOrder(id: string, contact: string): Promise<TrackedOrder | null> {
+  const o = await findOrderByContact(clean(id, 40), clean(contact, 200));
   if (!o) return null;
   const { createdAt, items, total, status, slipAt, confirmedAt, shippedAt, carrier, tracking } = o;
   return { id: o.id, createdAt, items, total, status, slipAt, confirmedAt, shippedAt, carrier, tracking };
