@@ -2,6 +2,7 @@
 
 import { youTubeId } from '../../lib/video';
 import { normalizeCode } from '../../lib/discount';
+import { normalizeTiers } from '../../lib/commission';
 import { deleteDiscount, getDiscount, saveDiscount } from '../discounts';
 import type { DiscountCode } from '../../lib/types';
 import { revalidatePath } from 'next/cache';
@@ -133,6 +134,8 @@ export async function saveDiscountCode(input: DiscountCode, previousCode: string
       note: String(input.note ?? '').trim().slice(0, 200),
       affiliate: String(input.affiliate ?? '').trim().slice(0, 120),
       commissionPercent: Math.max(0, Math.min(100, Math.round((Number(input.commissionPercent) || 0) * 100) / 100)),
+      commissionTiers: normalizeTiers(Array.isArray(input.commissionTiers) ? input.commissionTiers.slice(0, 10) : []),
+      commissionTierMode: input.commissionTierMode === 'marginal' ? 'marginal' : 'whole',
     },
     previousCode,
   );

@@ -168,7 +168,17 @@ export interface DiscountCode {
   affiliate: string;
   /** Commission for the affiliate, % of net sales (items after discount, no shipping) on paid orders. */
   commissionPercent: number;
+  /** Tiered commission; when non-empty it replaces commissionPercent. Sorted by `from`, first tier from 0. */
+  commissionTiers: CommissionTier[];
+  /** whole: the tier reached sets the rate for all sales · marginal: each band is paid at its own rate */
+  commissionTierMode: 'whole' | 'marginal';
   createdAt: string;
+}
+
+/** "Net sales from ฿from up → percent". */
+export interface CommissionTier {
+  from: number;
+  percent: number;
 }
 
 /** An order that used a discount code, for the code report. */
