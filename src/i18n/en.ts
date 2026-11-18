@@ -31,6 +31,7 @@ export const en: Dict = {
     business: 'For business',
     privacy: 'Privacy policy',
     contact: 'Contact us',
+    credit: 'Website by',
   },
   home: {
     lead: 'Dog fitness equipment and training toys, made in Thailand. Get people and dogs moving, learning and playing together.',
