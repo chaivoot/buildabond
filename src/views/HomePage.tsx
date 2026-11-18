@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { SIZES } from '../data/sizes';
 import Link from 'next/link';
 import { BrainIcon, HeartIcon, StrengthIcon } from '../components/Icons';
-import { SiteFooter } from '../components/SiteFooter';
 import { SiteHeader } from '../components/SiteHeader';
 import { img } from '../data/images';
 import { SOCIAL } from '../data/social';
@@ -184,7 +183,6 @@ export function HomePage() {
           </div>
         </section>
       </main>
-      <SiteFooter />
     </>
   );
 }

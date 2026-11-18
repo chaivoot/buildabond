@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Providers } from '../../components/Providers';
+import { SiteFooter } from '../../components/SiteFooter';
 import { img } from '../../data/images';
 import { SITE } from '../../data/site';
 import { isLocale, LOCALES } from '../../i18n/config';
@@ -41,7 +42,10 @@ export default async function RootLayout({ children, params }: Props) {
   return (
     <html lang={lang} className={fontVariables}>
       <body>
-        <Providers lang={lang} settings={settings}>{children}</Providers>
+        <Providers lang={lang} settings={settings}>
+          {children}
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
   );
