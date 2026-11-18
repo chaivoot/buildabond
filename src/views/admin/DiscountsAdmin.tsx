@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { baht } from '../../data/format';
 import { codeProblem, discountLabel } from '../../lib/discount';
-import type { DiscountCode } from '../../lib/types';
+import type { CodeOrder, DiscountCode } from '../../lib/types';
+import { DiscountReport } from './DiscountReport';
 import { removeDiscountCode, saveDiscountCode } from '../../server/actions/admin';
 
 const EMPTY: DiscountCode = {
-  code: '', kind: 'percent', value: 5, active: true, minSubtotal: 0, maxUses: null, usedCount: 0, expiresAt: null, note: '', createdAt: '',
+  code: '', kind: 'percent', value: 5, active: true, minSubtotal: 0, maxUses: null, usedCount: 0, expiresAt: null, note: '', affiliate: '', commissionPercent: 0, createdAt: '',
 };
 
 /** "2026-12-31" in Bangkok ↔ the end of that day as an ISO time. */
@@ -24,8 +25,9 @@ function status(c: DiscountCode): { label: string; tone: string } {
   return { label: 'ใช้งานได้', tone: 'tag--green' };
 }
 
-export function DiscountsAdmin({ codes }: { codes: DiscountCode[] }) {
+export function DiscountsAdmin({ codes, orders }: { codes: DiscountCode[]; orders: CodeOrder[] }) {
   const router = useRouter();
+  const [view, setView] = useState<'codes' | 'report'>('codes');
   const [editing, setEditing] = useState<{ code: DiscountCode; previous: string | null } | null>(null);
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
@@ -48,9 +50,15 @@ export function DiscountsAdmin({ codes }: { codes: DiscountCode[] }) {
     <>
       <div className="admin-head">
         <h1>โค้ดส่วนลด</h1>
-        <button type="button" className="btn btn--primary btn--square" onClick={() => open(null)}>+ สร้างโค้ดใหม่</button>
+        {view === 'codes' && <button type="button" className="btn btn--primary btn--square" onClick={() => open(null)}>+ สร้างโค้ดใหม่</button>}
       </div>
-      <p className="small" style={{ marginTop: 6 }}>ลูกค้าใส่โค้ดในหน้าชำระเงิน ส่วนลดคิดจากยอดสินค้า (ไม่รวมค่าส่ง) และนับการใช้เมื่อกดยืนยันคำสั่งซื้อ</p>
+      <div role="tablist" aria-label="โค้ดส่วนลด" className="admin__tabs">
+        <button type="button" role="tab" aria-selected={view === 'codes'} onClick={() => setView('codes')}>โค้ดทั้งหมด <span>{codes.length}</span></button>
+        <button type="button" role="tab" aria-selected={view === 'report'} onClick={() => setView('report')}>รายงานการใช้โค้ด / ค่าคอม</button>
+      </div>
+
+      {view === 'report' ? <div style={{ marginTop: 18 }}><DiscountReport codes={codes} orders={orders} /></div> : <>
+      <p className="small" style={{ marginTop: 12 }}>ลูกค้าใส่โค้ดในหน้าชำระเงิน ส่วนลดคิดจากยอดสินค้า (ไม่รวมค่าส่ง) และนับการใช้เมื่อกดยืนยันคำสั่งซื้อ</p>
 
       {e && (
         <section className="admin-card" style={{ marginTop: 18 }}>
@@ -82,6 +90,14 @@ export function DiscountsAdmin({ codes }: { codes: DiscountCode[] }) {
             <label className="field">ใช้ได้ถึงวันที่
               <span className="field__hint">ว่างไว้ = ไม่มีวันหมดอายุ</span>
               <input className="input" type="date" value={isoToDay(e.expiresAt)} onChange={(ev) => patch({ expiresAt: dayToIso(ev.target.value) })} />
+            </label>
+            <label className="field">Affiliate / เจ้าของโค้ด
+              <span className="field__hint">ชื่อหรือช่องทางติดต่อ แสดงในรายงาน</span>
+              <input className="input" value={e.affiliate} onChange={(ev) => patch({ affiliate: ev.target.value })} placeholder="เช่น คุณแม่มัม (IG @…)" />
+            </label>
+            <label className="field">ค่าคอม (%)
+              <span className="field__hint">ของยอดสินค้าหลังหักส่วนลด · 0 = ไม่มีค่าคอม</span>
+              <input className="input" type="number" min={0} max={100} step={0.5} value={e.commissionPercent} onChange={(ev) => patch({ commissionPercent: Number(ev.target.value) })} />
             </label>
             <label className="field" style={{ gridColumn: '1 / -1' }}>บันทึกถึงตัวเอง
               <span className="field__hint">ลูกค้าไม่เห็น เช่น โค้ดนี้แจกใคร</span>
@@ -120,11 +136,11 @@ export function DiscountsAdmin({ codes }: { codes: DiscountCode[] }) {
       <div className="admin__table-wrap" style={{ marginTop: 18 }}>
         <table className="admin__table">
           <thead>
-            <tr><th>โค้ด</th><th>ส่วนลด</th><th>ใช้ไปแล้ว</th><th>เงื่อนไข</th><th>สถานะ</th><th /></tr>
+            <tr><th>โค้ด</th><th>ส่วนลด</th><th>ใช้ไปแล้ว</th><th>เงื่อนไข</th><th>Affiliate / ค่าคอม</th><th>สถานะ</th><th /></tr>
           </thead>
           <tbody>
             {codes.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 28, textAlign: 'center' }} className="muted">ยังไม่มีโค้ดส่วนลด</td></tr>
+              <tr><td colSpan={7} style={{ padding: 28, textAlign: 'center' }} className="muted">ยังไม่มีโค้ดส่วนลด</td></tr>
             )}
             {codes.map((c) => {
               const s = status(c);
@@ -138,6 +154,10 @@ export function DiscountsAdmin({ codes }: { codes: DiscountCode[] }) {
                   <td>{c.usedCount}{c.maxUses !== null ? ` / ${c.maxUses}` : ''} ครั้ง</td>
                   <td className="small">
                     {[c.minSubtotal > 0 ? `ขั้นต่ำ ${baht(c.minSubtotal)}` : null, c.expiresAt ? `ถึง ${showDay(c.expiresAt)}` : null].filter(Boolean).join(' · ') || 'ไม่มี'}
+                  </td>
+                  <td className="small">
+                    {c.affiliate || <span className="muted">–</span>}
+                    {c.commissionPercent > 0 && <><br />ค่าคอม {c.commissionPercent}%</>}
                   </td>
                   <td>
                     <label className="admin-check" style={{ gap: 6 }}>
@@ -154,6 +174,7 @@ export function DiscountsAdmin({ codes }: { codes: DiscountCode[] }) {
           </tbody>
         </table>
       </div>
+      </>}
     </>
   );
 }

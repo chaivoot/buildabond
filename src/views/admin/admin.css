@@ -116,6 +116,19 @@
   .admin-sizes__row { grid-template-columns: 1fr 1fr; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); }
 }
 
+/* ---------- Discount report ---------- */
+.admin-report__bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.admin-report__periods { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-report__dates { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.admin-report__dates label { display: inline-flex; gap: 6px; align-items: center; }
+.admin-report__export { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-report__cards { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.admin-report__cards .admin-card { padding: 16px 18px; }
+.admin-report__cards p { margin-top: 4px; font-family: var(--font-display); font-size: 28px; }
+.admin-report__orders { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.admin-report__orders li { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 6px 0; border-bottom: 1px solid #efe6d6; }
+.admin-report__orders li:last-child { border-bottom: 0; }
+
 /* ---------- Phones ---------- */
 @media (max-width: 760px) {
   .admin__bar { padding: 8px 16px; gap: 8px; }
@@ -135,4 +148,7 @@
   .admin-actions .btn--primary { flex: 1; }
   .admin-actions__status { font-size: 12px; }
   .admin-gallery { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .admin-report__export { margin-left: 0; }
+  .admin-report__cards { grid-template-columns: 1fr 1fr; }
+  .admin-report__cards p { font-size: 22px; }
 }

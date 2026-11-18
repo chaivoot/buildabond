@@ -164,7 +164,23 @@ export interface DiscountCode {
   /** Last day it works, ISO; null = no end date. */
   expiresAt: string | null;
   note: string;
+  /** Who the code belongs to (an affiliate / partner), shown in the report. */
+  affiliate: string;
+  /** Commission for the affiliate, % of net sales (items after discount, no shipping) on paid orders. */
+  commissionPercent: number;
   createdAt: string;
+}
+
+/** An order that used a discount code, for the code report. */
+export interface CodeOrder {
+  id: string;
+  createdAt: string;
+  name: string;
+  status: OrderStatus;
+  discountCode: string;
+  subtotal: number;
+  discount: number;
+  total: number;
 }
 
 export type RequestKind = 'custom' | 'business';
