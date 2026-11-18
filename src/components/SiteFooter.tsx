@@ -40,7 +40,7 @@ export function SiteFooter() {
         </div>
         <p style={{ marginTop: 48, fontSize: 13, color: 'var(--on-dark-3)' }}>© 2026 Buildabond Active Play &amp; Fitness · dev by{' '}
           <a href="https://dogsanook.com" target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'underline' }}>
-            DogSanook
+            หมาสนุก
           </a>
         </p>
       </div>
