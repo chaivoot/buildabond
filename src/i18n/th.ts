@@ -108,6 +108,7 @@ export const th = {
     leadReady: 'สินค้าประกอบแล้ว ทำผิวยางสีที่เลือก 3-5 วันก่อนจัดส่ง',
     leadPreorder: 'ผลิตตามสั่ง ใช้เวลาประมาณ 28-35 วัน',
     colorFallback: 'สี',
+    sizeLegend: 'ขนาด',
     magnetsTitle: (n: number) => `เพิ่มแม่เหล็ก ${n} ชิ้น`,
     magnetsHintBoard: 'ติดใต้แผ่น ใช้ยึดกับ Target Box และ Slant Box ไม่ให้เลื่อน',
     magnetsHintBase: 'ติดบนกล่อง ใช้ยึด Place Board ให้อยู่กับที่',

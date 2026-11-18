@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition, type ReactNode } from 'react';
 import { CATEGORIES } from '../../data/products';
 import { COLOR_PRESETS } from '../../data/seed';
-import type { CategoryId, Product, ProductDetail, ProductText, StockStatus } from '../../lib/types';
+import type { CategoryId, Product, ProductDetail, ProductSize, ProductText, StockStatus } from '../../lib/types';
 import { PRODUCT_TOKENS_HELP } from '../../lib/productTokens';
 import { youTubeId, youTubeThumb } from '../../lib/video';
 import { removeProduct, saveProduct, uploadProductImage } from '../../server/actions/admin';
@@ -52,6 +52,17 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
   const setDetail = (d: Partial<ProductDetail>) => { setP((x) => ({ ...x, detail: { ...x.detail, ...d } })); setSaved(false); };
   const setEn = (d: Partial<ProductText>) => { setP((x) => ({ ...x, en: { ...x.en, ...d } })); setSaved(false); };
   const gallery = p.detail.gallery ?? [];
+  const sizes = p.detail.sizes ?? [];
+  const setSizeAt = (i: number, patch: Partial<ProductSize>) => setDetail({ sizes: sizes.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
+  const moveSize = (i: number, d: -1 | 1) => { const s = [...sizes]; [s[i], s[i + d]] = [s[i + d], s[i]]; setDetail({ sizes: s }); };
+  // Colours as they'll be saved: the chosen preset's, or the product's own.
+  const shownColors = COLOR_PRESETS.find((c) => c.id === preset)?.colors ?? p.colors;
+  const colorImages = p.detail.colorImages ?? {};
+  const setColorImage = (key: string, url: string | null) => {
+    const next = { ...colorImages };
+    if (url) next[key] = url; else delete next[key];
+    setDetail({ colorImages: next });
+  };
   const videoLines = videos.split('\n').map((l) => l.trim()).filter(Boolean);
   const badVideos = videoLines.filter((l) => !youTubeId(l));
 
@@ -130,13 +141,13 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
         <section className="admin-card">
           <h2>ราคาและการขาย</h2>
           <div className="admin-grid">
-            <Field label="ราคา (บาท)" hint="ราคาที่ใช้คิดเงินในตะกร้า">
+            <Field label="ราคา (บาท)" hint={sizes.length ? 'มีหลายขนาด: ใช้ราคาของแต่ละขนาดด้านล่างแทน' : 'ราคาที่ใช้คิดเงินในตะกร้า'}>
               <input className="input" type="number" min={0} value={p.price} onChange={(e) => set('price', Number(e.target.value))} />
             </Field>
             <Field label="ข้อความราคา" hint="ที่แสดงในหน้ารวมสินค้า เช่น เริ่ม ฿1,590">
               <input className="input" value={p.priceLabel} onChange={(e) => set('priceLabel', e.target.value)} />
             </Field>
-            <Field label="น้ำหนักต่อชิ้น (กก.)" hint="ใช้คิดค่าส่ง">
+            <Field label="น้ำหนักต่อชิ้น (กก.)" hint={sizes.length ? 'มีหลายขนาด: ใช้น้ำหนักของแต่ละขนาดด้านล่างแทน' : 'ใช้คิดค่าส่ง'}>
               <input className="input" type="number" min={0} step={0.1} value={p.kg} onChange={(e) => set('kg', Number(e.target.value))} />
             </Field>
             <Field label="สถานะสินค้า">
@@ -173,6 +184,36 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
             <label className="admin-check"><input type="checkbox" checked={p.comingSoon} onChange={(e) => set('comingSoon', e.target.checked)} />เร็ว ๆ นี้ (ยังไม่ขาย)</label>
             <label className="admin-check"><input type="checkbox" checked={p.custom} onChange={(e) => set('custom', e.target.checked)} />สั่งทำ (ลิงก์ไปหน้าคำนวณราคา)</label>
           </div>
+        </section>
+
+        <section className="admin-card">
+          <h2>ขนาด</h2>
+          <p className="small" style={{ marginBottom: 12 }}>
+            ถ้าสินค้ามีหลายขนาด เพิ่มไว้ที่นี่ ลูกค้าจะเลือกขนาดในหน้าสินค้า และราคากับน้ำหนักจะเปลี่ยนตามขนาดที่เลือก ไม่มีหลายขนาดก็เว้นว่างไว้
+          </p>
+          {sizes.length > 0 && (
+            <div className="admin-sizes">
+              <div className="admin-sizes__row admin-sizes__head small" aria-hidden="true">
+                <span>ชื่อขนาด</span><span>English</span><span>ราคา (บาท)</span><span>น้ำหนัก (กก.)</span><span />
+              </div>
+              {sizes.map((s, i) => (
+                <div key={i} className="admin-sizes__row">
+                  <input className="input input--sm" value={s.label} placeholder="เช่น สูง 6 cm" aria-label={`ชื่อขนาดที่ ${i + 1}`} onChange={(e) => setSizeAt(i, { label: e.target.value })} />
+                  <input className="input input--sm" lang="en" value={s.labelEn ?? ''} placeholder={s.label || 'e.g. 6 cm high'} aria-label={`ชื่อขนาดที่ ${i + 1} ภาษาอังกฤษ`} onChange={(e) => setSizeAt(i, { labelEn: e.target.value })} />
+                  <input className="input input--sm" type="number" min={0} value={s.price} aria-label={`ราคาขนาดที่ ${i + 1}`} onChange={(e) => setSizeAt(i, { price: Number(e.target.value) })} />
+                  <input className="input input--sm" type="number" min={0} step={0.1} value={s.kg} aria-label={`น้ำหนักขนาดที่ ${i + 1}`} onChange={(e) => setSizeAt(i, { kg: Number(e.target.value) })} />
+                  <span className="admin-sizes__btns">
+                    <button type="button" aria-label="เลื่อนขึ้น" disabled={i === 0} onClick={() => moveSize(i, -1)}>↑</button>
+                    <button type="button" aria-label="เลื่อนลง" disabled={i === sizes.length - 1} onClick={() => moveSize(i, 1)}>↓</button>
+                    <button type="button" aria-label="ลบขนาดนี้" onClick={() => setDetail({ sizes: sizes.filter((_, j) => j !== i) })}>✕</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <button type="button" className="btn btn--ghost btn--sm" style={{ marginTop: 10 }} onClick={() => setDetail({ sizes: [...sizes, { label: '', price: p.price, kg: p.kg }] })}>
+            + เพิ่มขนาด
+          </button>
         </section>
 
         <section className="admin-card" lang="en">
@@ -221,6 +262,36 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
             </label>
           </div>
         </section>
+
+        {shownColors.length > 0 && (
+          <section className="admin-card">
+            <h2>รูปตามสี</h2>
+            <p className="small" style={{ marginBottom: 12 }}>ใส่รูปของแต่ละสี เมื่อลูกค้าเลือกสีนั้น รูปหลักในหน้าสินค้าจะเปลี่ยนเป็นรูปนี้ และใช้เป็นรูปในตะกร้า สีที่ไม่มีรูปจะใช้รูปแกลเลอรีตามปกติ</p>
+            <div className="admin-gallery">
+              {shownColors.map((c) => {
+                const key = c.labelTh ?? c.label;
+                const src = colorImages[key];
+                return (
+                  <div key={key} className="admin-gallery__item">
+                    <div className="admin-gallery__img">
+                      {src ? <Image src={src} alt={`สี${c.label}`} fill sizes="160px" /> : <span className="admin-gallery__empty"><span className="swatch swatch--lg" style={{ background: c.swatch }} /></span>}
+                    </div>
+                    <div className="admin-gallery__bar" style={{ justifyContent: 'space-between', paddingInline: 8 }}>
+                      <span style={{ fontSize: 13 }}>{c.label}</span>
+                      <span style={{ display: 'inline-flex', gap: 6 }}>
+                        <label className="text-btn text-btn--link" style={{ cursor: 'pointer', fontSize: 13 }}>
+                          {src ? 'เปลี่ยน' : 'ใส่รูป'}
+                          <input type="file" accept="image/*" className="visually-hidden" disabled={uploading} onChange={async (e) => { const url = await upload(e.target.files?.[0]); if (url) setColorImage(key, url); e.target.value = ''; }} />
+                        </label>
+                        {src && <button type="button" aria-label={`ลบรูปสี${c.label}`} onClick={() => setColorImage(key, null)}>✕</button>}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <section className="admin-card">
           <h2>วิดีโอ</h2>

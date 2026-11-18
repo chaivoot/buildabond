@@ -13,12 +13,27 @@ export interface ColorOption {
   labelTh?: string;
 }
 
+/** One size of a product. Its price and weight replace the product's own when chosen. */
+export interface ProductSize {
+  /** e.g. "สูง 6 cm", "S" */
+  label: string;
+  /** English label; empty uses the Thai one. */
+  labelEn?: string;
+  price: number;
+  /** Weight per piece in kg, used for shipping. */
+  kg: number;
+}
+
 export interface ProductDetail {
   /** "แผ่นกระดาน 80 × 33 × 1.5 cm · รหัส 0101" */
   subtitle?: string;
   gallery?: { src: string; alt: string }[];
   /** YouTube links (watch, youtu.be or Shorts), shown after the photos in the gallery. */
   videos?: string[];
+  /** Sizes the customer picks from; empty or missing means one size (the product's own price and weight). */
+  sizes?: ProductSize[];
+  /** Photo per colour, keyed by the colour's Thai label; the main image switches to it when that colour is chosen. */
+  colorImages?: Record<string, string>;
   story?: { title: string; body: string; img: string; alt: string };
   moves?: { tag: string; tone: string; title: string; body: string }[];
   specs?: [string, string][];
