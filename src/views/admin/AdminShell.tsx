@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin', label: 'ออร์เดอร์', match: (p: string) => p === '/admin' },
   { href: '/admin/products', label: 'สินค้า', match: (p: string) => p.startsWith('/admin/products') },
   { href: '/admin/customers', label: 'ลูกค้า', match: (p: string) => p.startsWith('/admin/customers') },
+  { href: '/admin/discounts', label: 'โค้ดส่วนลด', match: (p: string) => p.startsWith('/admin/discounts') },
   { href: '/admin/requests', label: 'คำขอสั่งทำ / ธุรกิจ', match: (p: string) => p.startsWith('/admin/requests') },
   { href: '/admin/settings', label: 'ตั้งค่าร้าน', match: (p: string) => p.startsWith('/admin/settings') },
 ];

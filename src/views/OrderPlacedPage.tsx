@@ -82,6 +82,7 @@ export function OrderPlacedPage({ order, accessKey, bank, qrSvg }: Props) {
           <div className="info-box">
             <p className="small">{o.amountDue}</p>
             <p className="info-box__value">{baht(order.total)}</p>
+            {order.discount > 0 && <p className="small" style={{ color: '#1d6b2a' }}>{t.checkout.discountRow(order.discountCode)} −{baht(order.discount)}</p>}
           </div>
         </div>
 

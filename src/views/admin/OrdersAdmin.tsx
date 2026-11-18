@@ -121,6 +121,9 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
                   <span>{baht(it.unitPrice * it.qty)}</span>
                 </li>
               ))}
+              {sel.discount > 0 && (
+                <li style={{ color: '#1d6b2a' }}><span>ส่วนลด (โค้ด {sel.discountCode})</span><span>−{baht(sel.discount)}</span></li>
+              )}
               <li className="muted"><span>ค่าส่ง ({sel.kg} กก.)</span><span>{baht(sel.shipping)}</span></li>
               <li style={{ fontWeight: 600, fontSize: 16, paddingTop: 6 }}><span>รวม</span><span>{baht(sel.total)}</span></li>
             </ul>
