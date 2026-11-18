@@ -138,6 +138,9 @@ const SCHEMA = [
   )`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code text NOT NULL DEFAULT ''`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount integer NOT NULL DEFAULT 0`,
+  `ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS affiliate text NOT NULL DEFAULT ''`,
+  `ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS commission_percent real NOT NULL DEFAULT 0`,
+  `CREATE INDEX IF NOT EXISTS orders_discount_code ON orders (discount_code) WHERE discount_code <> ''`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS en jsonb NOT NULL DEFAULT '{}'`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS email text NOT NULL DEFAULT ''`,
   `CREATE TABLE IF NOT EXISTS customers (

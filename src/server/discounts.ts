@@ -1,16 +1,16 @@
 import { normalizeCode } from '../lib/discount';
-import type { DiscountCode, DiscountKind } from '../lib/types';
+import type { CodeOrder, DiscountCode, DiscountKind, OrderStatus } from '../lib/types';
 import { sql } from './db';
 
 interface Row {
   code: string; kind: string; value: number; active: boolean; min_subtotal: number; max_uses: number | null; used_count: number;
-  expires_at: string | Date | null; note: string; created_at: string | Date;
+  expires_at: string | Date | null; note: string; created_at: string | Date; affiliate: string | null; commission_percent: number | null;
 }
 
 const fromRow = (r: Row): DiscountCode => ({
   code: r.code, kind: r.kind as DiscountKind, value: Number(r.value), active: r.active, minSubtotal: Number(r.min_subtotal),
   maxUses: r.max_uses === null ? null : Number(r.max_uses), usedCount: Number(r.used_count),
-  expiresAt: r.expires_at ? new Date(r.expires_at).toISOString() : null, note: r.note, createdAt: new Date(r.created_at).toISOString(),
+  expiresAt: r.expires_at ? new Date(r.expires_at).toISOString() : null, note: r.note, affiliate: r.affiliate ?? '', commissionPercent: Number(r.commission_percent ?? 0), createdAt: new Date(r.created_at).toISOString(),
 });
 
 export async function listDiscounts(): Promise<DiscountCode[]> {
@@ -23,15 +23,15 @@ export async function getDiscount(code: string): Promise<DiscountCode | null> {
 }
 
 export async function saveDiscount(d: DiscountCode, previousCode: string | null): Promise<void> {
-  const params = [d.code, d.kind, d.value, d.active, d.minSubtotal, d.maxUses, d.expiresAt, d.note];
+  const params = [d.code, d.kind, d.value, d.active, d.minSubtotal, d.maxUses, d.expiresAt, d.note, d.affiliate, d.commissionPercent];
   if (previousCode) {
     await sql(
-      `UPDATE discount_codes SET code = $1, kind = $2, value = $3, active = $4, min_subtotal = $5, max_uses = $6, expires_at = $7, note = $8 WHERE code = $9`,
+      `UPDATE discount_codes SET code = $1, kind = $2, value = $3, active = $4, min_subtotal = $5, max_uses = $6, expires_at = $7, note = $8, affiliate = $9, commission_percent = $10 WHERE code = $11`,
       [...params, previousCode],
     );
   } else {
     await sql(
-      `INSERT INTO discount_codes (code, kind, value, active, min_subtotal, max_uses, expires_at, note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      `INSERT INTO discount_codes (code, kind, value, active, min_subtotal, max_uses, expires_at, note, affiliate, commission_percent) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       params,
     );
   }
@@ -55,4 +55,15 @@ export async function redeemDiscount(code: string): Promise<boolean> {
 /** Gives a use back, e.g. when the order couldn't be saved after redeeming. */
 export async function releaseDiscount(code: string): Promise<void> {
   await sql(`UPDATE discount_codes SET used_count = GREATEST(0, used_count - 1) WHERE code = $1`, [code]);
+}
+
+/** Every order that used a code, newest first (for the code report and affiliate payouts). */
+export async function listCodeOrders(): Promise<CodeOrder[]> {
+  const rows = await sql<{ id: string; created_at: string | Date; name: string; status: string; discount_code: string; subtotal: number; discount: number; total: number }>(
+    `SELECT id, created_at, name, status, discount_code, subtotal, discount, total FROM orders WHERE discount_code <> '' ORDER BY created_at DESC`,
+  );
+  return rows.map((r) => ({
+    id: r.id, createdAt: new Date(r.created_at).toISOString(), name: r.name, status: r.status as OrderStatus,
+    discountCode: r.discount_code, subtotal: Number(r.subtotal), discount: Number(r.discount), total: Number(r.total),
+  }));
 }
