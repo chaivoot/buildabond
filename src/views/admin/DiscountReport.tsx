@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Fragment, useMemo, useState } from 'react';
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
+import { commissionFor, commissionSummary, normalizeTiers, tierFor } from '../../lib/commission';
 import type { CodeOrder, DiscountCode, OrderStatus } from '../../lib/types';
 
 /** Counted for sales and commission once the owner has confirmed the payment. */
@@ -27,7 +28,9 @@ const monthName = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateStri
 interface Row {
   code: string;
   affiliate: string;
-  commissionPercent: number;
+  plan: string;
+  /** The tier rate reached this period, for tiered plans */
+  rate: number | null;
   paid: number;
   pending: number;
   cancelled: number;
@@ -74,7 +77,7 @@ export function DiscountReport({ codes, orders }: { codes: DiscountCode[]; order
     for (const o of inRange) {
       const c = meta.get(o.discountCode);
       const r = byCode.get(o.discountCode) ?? {
-        code: o.discountCode, affiliate: c?.affiliate ?? '', commissionPercent: c?.commissionPercent ?? 0,
+        code: o.discountCode, affiliate: c?.affiliate ?? '', plan: c ? commissionSummary(c) : '', rate: null,
         paid: 0, pending: 0, cancelled: 0, sales: 0, discount: 0, net: 0, commission: 0, orders: [],
       };
       r.orders.push(o);
@@ -87,7 +90,14 @@ export function DiscountReport({ codes, orders }: { codes: DiscountCode[]; order
       else r.cancelled += 1;
       byCode.set(o.discountCode, r);
     }
-    for (const r of byCode.values()) r.commission = round2((r.net * r.commissionPercent) / 100);
+    // Tiers apply to the period's total per code, so pick a month for monthly tiers.
+    for (const r of byCode.values()) {
+      const c = meta.get(r.code);
+      if (!c) continue;
+      r.commission = commissionFor(c, r.net);
+      const tiers = normalizeTiers(c.commissionTiers);
+      r.rate = tiers.length ? tierFor(tiers, r.net)?.percent ?? 0 : null;
+    }
     return [...byCode.values()].sort((a, b) => b.net - a.net || b.pending - a.pending);
   }, [orders, codes, from, to]);
 
@@ -100,10 +110,10 @@ export function DiscountReport({ codes, orders }: { codes: DiscountCode[]; order
     download(`discount-report-${from || 'all'}-${to || 'all'}.csv`, [
       ['ช่วงเวลา', periodLabel],
       [],
-      ['โค้ด', 'Affiliate', 'ออร์เดอร์ที่ชำระแล้ว', 'รอชำระ/รอตรวจ', 'ยกเลิก', 'ยอดสินค้า', 'ส่วนลด', 'ยอดหลังหักส่วนลด', 'ค่าคอม %', 'ค่าคอม (บาท)'],
-      ...rows.map((r) => [r.code, r.affiliate, r.paid, r.pending, r.cancelled, r.sales, r.discount, r.net, r.commissionPercent, r.commission]),
+      ['โค้ด', 'Affiliate', 'ออร์เดอร์ที่ชำระแล้ว', 'รอชำระ/รอตรวจ', 'ยกเลิก', 'ยอดสินค้า', 'ส่วนลด', 'ยอดหลังหักส่วนลด', 'ค่าคอม (แบบ)', 'ขั้นที่ถึง %', 'ค่าคอม (บาท)'],
+      ...rows.map((r) => [r.code, r.affiliate, r.paid, r.pending, r.cancelled, r.sales, r.discount, r.net, r.plan, r.rate ?? '', r.commission]),
       [],
-      ['รวม', '', totals.paid, totals.pending, '', '', totals.discount, totals.net, '', round2(totals.commission)],
+      ['รวม', '', totals.paid, totals.pending, '', '', totals.discount, totals.net, '', '', round2(totals.commission)],
     ]);
 
   const exportOrders = () =>
@@ -144,7 +154,7 @@ export function DiscountReport({ codes, orders }: { codes: DiscountCode[]; order
         <div className="admin-card"><span className="small">ค่าคอมที่ต้องจ่าย</span><p>{baht(Math.round(totals.commission))}</p></div>
       </div>
       <p className="small" style={{ marginTop: 8 }}>
-        {periodLabel} · นับเฉพาะออร์เดอร์ที่ยืนยันการชำระแล้ว (ยืนยันแล้ว / จัดส่งแล้ว) ค่าคอมคิดจากยอดสินค้าหลังหักส่วนลด ไม่รวมค่าส่ง
+        {periodLabel} · นับเฉพาะออร์เดอร์ที่ยืนยันการชำระแล้ว (ยืนยันแล้ว / จัดส่งแล้ว) ค่าคอมคิดจากยอดสินค้าหลังหักส่วนลด ไม่รวมค่าส่ง ขั้นบันไดคิดจากยอดรวมของช่วงเวลาที่เลือก (เลือกรายเดือนสำหรับขั้นบันไดรายเดือน)
         {totals.pending > 0 && ` · มีอีก ${totals.pending} ออร์เดอร์ที่ยังรอชำระหรือรอตรวจสลิป`}
       </p>
 
@@ -178,7 +188,7 @@ export function DiscountReport({ codes, orders }: { codes: DiscountCode[]; order
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>{baht(r.net)}</td>
                   <td style={{ textAlign: 'right' }}>{baht(r.discount)}</td>
                   <td style={{ textAlign: 'right' }}>
-                    {r.commissionPercent > 0 ? <>{baht(Math.round(r.commission))}<br /><span className="small">{r.commissionPercent}%</span></> : <span className="muted">–</span>}
+                    {r.plan ? <>{baht(Math.round(r.commission))}<br /><span className="small">{r.rate !== null ? `ถึงขั้น ${r.rate}% · ` : ''}{r.plan}</span></> : <span className="muted">–</span>}
                   </td>
                 </tr>
                 {open === r.code && (
