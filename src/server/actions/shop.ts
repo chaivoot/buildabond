@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { priceLine, type CartLineInput } from '../../lib/pricing';
 import { shippingFee } from '../../lib/shipping';
+import { codeProblem, discountFor, normalizeCode, type DiscountRule } from '../../lib/discount';
+import { getDiscount, redeemDiscount, releaseDiscount } from '../discounts';
 import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
 import { allowAttempt, isEmail, isPhone, lookupCustomer, normalizeEmail, normalizePhone, recordCustomer, verifiedAddress, type CustomerAddress, type Lookup } from '../customers';
@@ -28,6 +30,8 @@ export interface CheckoutInput {
   /** Set when the customer confirmed a changed phone (old phone) or changed email (old email). */
   oldPhone?: string;
   oldEmail?: string;
+  /** Discount code the customer applied, if any; checked again here. */
+  discountCode?: string;
 }
 
 /** Errors are codes; the browser shows them in the visitor's language (dictionary: errors). */
@@ -70,8 +74,28 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const subtotal = items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
   const kg = Math.round(items.reduce((a, i) => a + i.kg * i.qty, 0) * 10) / 10;
   const shipping = shippingFee(kg, settings.shipping);
+
+  // Discount: re-checked against the server's own subtotal, and one use is counted before the order is saved.
+  let discountCode = '';
+  let discount = 0;
+  const wanted = normalizeCode(clean(input.discountCode, 40));
+  if (wanted) {
+    const code = await getDiscount(wanted);
+    const problem = codeProblem(code, subtotal);
+    if (problem || !code) return { ok: false, error: problem ?? 'codeInvalid' };
+    if (!(await redeemDiscount(code.code))) return { ok: false, error: 'codeUsedUp' };
+    discountCode = code.code;
+    discount = discountFor(code, subtotal);
+  }
   const old = { phone: clean(input.oldPhone, 40) || undefined, email: clean(input.oldEmail, 200) || undefined };
-  const { id, key } = await createOrder({ name, phone, email, address, note: clean(input.note), customerId: null, items, subtotal, shipping, total: subtotal + shipping, kg });
+  let placed: { id: string; key: string };
+  try {
+    placed = await createOrder({ name, phone, email, address, note: clean(input.note), customerId: null, items, subtotal, discountCode, discount, shipping, total: subtotal - discount + shipping, kg });
+  } catch (e) {
+    if (discountCode) await releaseDiscount(discountCode).catch(() => {});
+    throw e;
+  }
+  const { id, key } = placed;
   // Remember this customer (keyed by email + phone), log any changes against this order, and link the order to them.
   try {
     const customerId = await recordCustomer(email, phone, addr, old, id);
@@ -81,6 +105,27 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   }
   revalidatePath('/admin');
   return { ok: true, id, key };
+}
+
+export type DiscountCheck = { ok: true; rule: DiscountRule; discount: number } | { ok: false; error: ErrorCode };
+
+/** Checks a code typed at checkout against the cart (priced on the server). Rate-limited per visitor like the customer lookup. */
+export async function checkDiscountCode(raw: string, lines: CartLineInput[]): Promise<DiscountCheck> {
+  const wanted = normalizeCode(clean(raw, 40));
+  if (!wanted) return { ok: false, error: 'codeInvalid' };
+  if (!(await allowAttempt(await clientIp()))) return { ok: false, error: 'codeTooMany' };
+  const [products, settings] = await Promise.all([listProducts(), getSettings()]);
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  let subtotal = 0;
+  for (const line of Array.isArray(lines) ? lines.slice(0, 50) : []) {
+    const priced = priceLine(line, bySlug.get(line.slug), settings);
+    if (priced) subtotal += priced.unitPrice * Math.max(1, Math.min(99, Math.floor(Number(line.qty) || 1)));
+  }
+  const code = await getDiscount(wanted);
+  const problem = codeProblem(code, subtotal);
+  if (problem || !code) return { ok: false, error: problem ?? 'codeInvalid' };
+  const rule: DiscountRule = { code: code.code, kind: code.kind, value: code.value, minSubtotal: code.minSubtotal };
+  return { ok: true, rule, discount: discountFor(rule, subtotal) };
 }
 
 export async function uploadSlip(id: string, key: string, form: FormData): Promise<Result<{ url: string }>> {

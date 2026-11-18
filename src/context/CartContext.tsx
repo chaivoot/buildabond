@@ -9,6 +9,8 @@ export type { CartItem };
 
 interface CartState {
   items: CartItem[];
+  /** False until the saved cart has been read from this browser. */
+  loaded: boolean;
   count: number;
   subtotal: number;
   kg: number;
@@ -89,13 +91,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     kg = Math.round(kg * 10) / 10;
     const shipping = shippingFee(kg, settings.shipping);
     return {
-      items, count, subtotal, kg, tier: shippingTier(kg, settings.shipping), shipping, total: subtotal + shipping,
+      items, loaded, count, subtotal, kg, tier: shippingTier(kg, settings.shipping), shipping, total: subtotal + shipping,
       add, setQty, remove, clear,
       drawerOpen,
       openDrawer: () => setDrawerOpen(true),
       closeDrawer: () => setDrawerOpen(false),
     };
-  }, [items, drawerOpen, settings.shipping, add, setQty, remove, clear]);
+  }, [items, loaded, drawerOpen, settings.shipping, add, setQty, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

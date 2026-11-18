@@ -124,6 +124,20 @@ const SCHEMA = [
     data jsonb NOT NULL DEFAULT '{}'
   )`,
   `CREATE SEQUENCE IF NOT EXISTS order_seq START 43`,
+  `CREATE TABLE IF NOT EXISTS discount_codes (
+    code text PRIMARY KEY,
+    kind text NOT NULL DEFAULT 'percent',
+    value integer NOT NULL,
+    active boolean NOT NULL DEFAULT true,
+    min_subtotal integer NOT NULL DEFAULT 0,
+    max_uses integer,
+    used_count integer NOT NULL DEFAULT 0,
+    expires_at timestamptz,
+    note text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code text NOT NULL DEFAULT ''`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount integer NOT NULL DEFAULT 0`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS en jsonb NOT NULL DEFAULT '{}'`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS email text NOT NULL DEFAULT ''`,
   `CREATE TABLE IF NOT EXISTS customers (
@@ -265,6 +279,10 @@ async function migrate(d: Driver) {
   });
   // Owner's price list, sizes and real product photos (src/data/catalog.ts).
   await once(d, 'migration:catalog-2', () => applyCatalog(d));
+  // First discount code, asked for by the owner: MOMMAM, 5% off.
+  await once(d, 'migration:discount-mommam-1', async () => {
+    await d.query(`INSERT INTO discount_codes (code, kind, value, note) VALUES ('MOMMAM', 'percent', 5, 'โค้ดแรกของร้าน') ON CONFLICT (code) DO NOTHING`);
+  });
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
       await d.query(`UPDATE products SET en = $2 WHERE slug = $1 AND en = '{}'::jsonb`, [slug, json(en)]);

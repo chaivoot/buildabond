@@ -13,7 +13,8 @@ import { itemName, itemOptions } from '../lib/cartItem';
 import { isThaiPhone, normalizePhone } from '../lib/phone';
 import { provinceOptions } from '../lib/provinces';
 import { loadCustomer, saveCustomer, type SavedCustomer } from '../lib/savedCustomer';
-import { confirmCustomerChange, findReturningCustomer, placeOrder } from '../server/actions/shop';
+import { checkDiscountCode, confirmCustomerChange, findReturningCustomer, placeOrder } from '../server/actions/shop';
+import { discountFor, discountLabel, type DiscountRule } from '../lib/discount';
 import './CheckoutPage.css';
 
 type Form = SavedCustomer & { note: string };
@@ -36,7 +37,7 @@ const validPhone = isThaiPhone;
 export function CheckoutPage() {
   const { lang, t } = useI18n();
   const c = t.checkout;
-  const { items, count, subtotal, kg, shipping, total, clear } = useCart();
+  const { items, loaded, count, subtotal, kg, shipping, total, clear } = useCart();
   const router = useRouter();
   const [form, setForm] = useState<Form>(EMPTY);
   const [remember, setRemember] = useState(true);
@@ -46,6 +47,23 @@ export function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
   const empty = items.length === 0;
+  // Discount code: the server checks it; the amount is recomputed here as the cart changes and again on the server at checkout.
+  const [codeInput, setCodeInput] = useState('');
+  const [rule, setRule] = useState<DiscountRule | null>(null);
+  const [codeError, setCodeError] = useState('');
+  const [checkingCode, setCheckingCode] = useState(false);
+  const discount = rule ? discountFor(rule, subtotal) : 0;
+  const due = total - discount;
+  const cartLines = () => items.map(({ slug, qty, size, color, magnets, custom }) => ({ slug, qty, size, color, magnets, custom }));
+  const applyCode = async () => {
+    if (!codeInput.trim() || checkingCode) return;
+    setCheckingCode(true);
+    setCodeError('');
+    const res = await checkDiscountCode(codeInput, cartLines()).catch(() => ({ ok: false as const, error: 'codeInvalid' as const }));
+    setCheckingCode(false);
+    if (res.ok) { setRule(res.rule); setCodeInput(''); }
+    else { setRule(null); setCodeError(t.errors[res.error]); }
+  };
 
   const set = (k: keyof Form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const fillAddress = (a: Partial<Form>) => setForm((f) => ({ ...f, ...a }));
@@ -85,9 +103,10 @@ export function CheckoutPage() {
     return () => clearTimeout(timer);
   }, [form.email, form.phone]);
 
+  // Only once the saved cart has loaded: on a reload the cart is briefly empty.
   useEffect(() => {
-    if (empty && !placing) router.replace('/cart');
-  }, [empty, placing, router]);
+    if (loaded && empty && !placing) router.replace('/cart');
+  }, [loaded, empty, placing, router]);
 
   if (empty) return null;
 
@@ -127,7 +146,8 @@ export function CheckoutPage() {
         note,
         oldPhone: lookup.s === 'verifiedPhone' ? lookup.oldPhone : undefined,
         oldEmail: lookup.s === 'verifiedEmail' ? lookup.oldEmail : undefined,
-        lines: items.map(({ slug, qty, color, magnets, custom }) => ({ slug, qty, color, magnets, custom })),
+        lines: cartLines(),
+        discountCode: rule?.code,
       });
       if (!res.ok) {
         setError(t.errors[res.error]);
@@ -286,11 +306,45 @@ export function CheckoutPage() {
             </details>
             <div className="stack divider-top" style={css({ marginTop: 16, paddingTop: 14, '--gap': '8px', fontSize: 15 })}>
               <div className="sum-row"><span>{c.subtotal}</span><span>{baht(subtotal)}</span></div>
+              {discount > 0 && rule && (
+                <div className="sum-row checkout-discount"><span>{c.discountRow(rule.code)}</span><span>−{baht(discount)}</span></div>
+              )}
               <div className="sum-row"><span>{c.shippingKg(kg)}</span><span>{baht(shipping)}</span></div>
               <div className="sum-row" style={{ alignItems: 'baseline', marginTop: 6 }}>
                 <span className="strong">{c.amountDue}</span>
-                <span className="num-display" style={{ fontSize: 30 }}>{baht(total)}</span>
+                <span className="num-display" style={{ fontSize: 30 }}>{baht(due)}</span>
               </div>
+            </div>
+            <div className="checkout-code">
+              {rule ? (
+                <p className="checkout-code__applied">
+                  <span>{discount > 0 ? c.codeApplied(rule.code, discountLabel(rule)) : c.codeBelowMin(baht(rule.minSubtotal))}</span>
+                  <button type="button" className="text-btn text-btn--link" onClick={() => setRule(null)}>{c.codeRemove}</button>
+                </p>
+              ) : (
+                <>
+                  <label htmlFor="discount-code" className="checkout-code__label">{c.codeLabel}</label>
+                  <div className="checkout-code__row">
+                    <input
+                      id="discount-code"
+                      className="input"
+                      value={codeInput}
+                      placeholder={c.codePlaceholder}
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      spellCheck={false}
+                      aria-invalid={!!codeError}
+                      aria-describedby={codeError ? 'discount-code-error' : undefined}
+                      onChange={(e) => { setCodeInput(e.target.value); setCodeError(''); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCode(); } }}
+                    />
+                    <button type="button" className="btn btn--ghost" onClick={applyCode} disabled={!codeInput.trim() || checkingCode}>
+                      {checkingCode ? c.codeChecking : c.codeApply}
+                    </button>
+                  </div>
+                  {codeError && <p id="discount-code-error" role="alert" className="checkout-code__error">{codeError}</p>}
+                </>
+              )}
             </div>
             {error && <p role="alert" className="checkout-error">{error}</p>}
             <button type="submit" className="btn btn--primary btn--lg btn--block" style={{ marginTop: 18 }} disabled={placing}>

@@ -1,6 +1,9 @@
 'use server';
 
 import { youTubeId } from '../../lib/video';
+import { normalizeCode } from '../../lib/discount';
+import { deleteDiscount, getDiscount, saveDiscount } from '../discounts';
+import type { DiscountCode } from '../../lib/types';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -105,6 +108,40 @@ export async function updateRequestStatus(id: string, status: RequestStatus) {
   await requireAdmin();
   await setRequestStatus(id, status);
   revalidatePath('/admin/requests');
+}
+
+/* ---------- Discount codes ---------- */
+
+export async function saveDiscountCode(input: DiscountCode, previousCode: string | null): Promise<{ error?: string }> {
+  await requireAdmin();
+  const code = normalizeCode(String(input.code ?? ''));
+  if (!/^[A-Z0-9_-]{3,30}$/.test(code)) return { error: 'โค้ดใช้ได้เฉพาะ A-Z, 0-9, - และ _ ยาว 3-30 ตัว' };
+  const kind = input.kind === 'amount' ? 'amount' : 'percent';
+  const value = Math.round(Number(input.value) || 0);
+  if (kind === 'percent' && (value < 1 || value > 100)) return { error: 'ส่วนลดเป็นเปอร์เซ็นต์ต้องอยู่ระหว่าง 1-100' };
+  if (kind === 'amount' && value < 1) return { error: 'ใส่จำนวนเงินส่วนลด' };
+  const maxUses = input.maxUses === null || input.maxUses === undefined || String(input.maxUses) === '' ? null : Math.max(1, Math.floor(Number(input.maxUses)));
+  const expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
+  if (expiresAt && Number.isNaN(expiresAt.getTime())) return { error: 'วันหมดอายุไม่ถูกต้อง' };
+  if (code !== previousCode && (await getDiscount(code))) return { error: 'มีโค้ดนี้อยู่แล้ว' };
+  await saveDiscount(
+    {
+      ...input, code, kind, value, maxUses,
+      active: !!input.active,
+      minSubtotal: Math.max(0, Math.round(Number(input.minSubtotal) || 0)),
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      note: String(input.note ?? '').trim().slice(0, 200),
+    },
+    previousCode,
+  );
+  revalidatePath('/admin/discounts');
+  return {};
+}
+
+export async function removeDiscountCode(code: string) {
+  await requireAdmin();
+  await deleteDiscount(code);
+  revalidatePath('/admin/discounts');
 }
 
 /* ---------- Settings ---------- */

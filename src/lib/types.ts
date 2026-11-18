@@ -129,6 +129,10 @@ export interface Order {
   note: string;
   items: OrderItem[];
   subtotal: number;
+  /** Discount code used (upper case), or '' */
+  discountCode: string;
+  /** Baht taken off the subtotal */
+  discount: number;
   shipping: number;
   total: number;
   kg: number;
@@ -141,6 +145,26 @@ export interface Order {
   tracking: string;
   /** Linked customer (see /admin/customers); null for guest orders that couldn't be linked. */
   customerId: string | null;
+}
+
+export type DiscountKind = 'percent' | 'amount';
+
+export interface DiscountCode {
+  /** Upper case, e.g. MOMMAM */
+  code: string;
+  /** percent: value is % off the subtotal · amount: value is baht off */
+  kind: DiscountKind;
+  value: number;
+  active: boolean;
+  /** Smallest subtotal the code works on (0 = any). */
+  minSubtotal: number;
+  /** Total uses allowed across all customers; null = unlimited. */
+  maxUses: number | null;
+  usedCount: number;
+  /** Last day it works, ISO; null = no end date. */
+  expiresAt: string | null;
+  note: string;
+  createdAt: string;
 }
 
 export type RequestKind = 'custom' | 'business';

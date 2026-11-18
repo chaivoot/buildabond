@@ -23,3 +23,12 @@
 .checkout-note--ask { background: var(--sky-tint); color: var(--ink); }
 .checkout-note__link { min-height: 0; padding: 0; font-size: inherit; }
 .checkout-verify { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+
+.checkout-discount { color: #1d6b2a; }
+.checkout-code { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.checkout-code__label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.checkout-code__row { display: flex; gap: 8px; }
+.checkout-code__row .input { flex: 1; min-width: 0; text-transform: uppercase; }
+.checkout-code__row .btn { flex: none; }
+.checkout-code__error { margin-top: 8px; font-size: 14px; color: #8e1f0b; }
+.checkout-code__applied { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 14px; padding: 10px 12px; border-radius: 12px; background: var(--green-tint); color: #1d4f22; }
