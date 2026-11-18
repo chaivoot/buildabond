@@ -17,6 +17,8 @@ export interface ProductDetail {
   /** "แผ่นกระดาน 80 × 33 × 1.5 cm · รหัส 0101" */
   subtitle?: string;
   gallery?: { src: string; alt: string }[];
+  /** YouTube links (watch, youtu.be or Shorts), shown after the photos in the gallery. */
+  videos?: string[];
   story?: { title: string; body: string; img: string; alt: string };
   moves?: { tag: string; tone: string; title: string; body: string }[];
   specs?: [string, string][];

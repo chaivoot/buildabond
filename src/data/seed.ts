@@ -41,6 +41,7 @@ const list: SeedProduct[] = [
     img: '/images/place-board.jpg', cover: true, magnets: true, magnetCount: 4, sku: '0101',
     detail: {
       subtitle: 'แผ่นกระดาน 80 × 33 × 1.5 cm · รหัส 0101',
+      videos: ['https://www.youtube.com/shorts/cVXWdC-6DV4'],
       gallery: [
         { src: '/images/place-board.jpg', alt: 'ค็อกเกอร์สแปเนียลยืนบน Place Board สีฟ้ากลางสนาม' },
         { src: '/images/magnets.jpg', alt: 'ด้านล่างแผ่นกระดานที่ติดแม่เหล็ก' },

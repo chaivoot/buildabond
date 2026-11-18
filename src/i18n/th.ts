@@ -115,6 +115,8 @@ export const th = {
     addToCart: 'ใส่ตะกร้า',
     shippingNote: (tiers: string) => `ค่าส่งคิดตามน้ำหนักรวมของออร์เดอร์ ${tiers}`,
     viewImage: (i: number) => `ดูรูปที่ ${i}`,
+    videoLabel: (i: number) => `วิดีโอที่ ${i}`,
+    playVideo: 'เล่นวิดีโอ',
     materialEyebrow: 'วัสดุ',
     materialTitle: 'ยางเกรดสนามเด็กเล่น บนไม้ยางพาราส่งออก',
     materialBody: 'ผิว EPDM มีลายช่วยยึดเกาะ รับแรงกระแทกได้ถึง 200 กก. โครงสร้างออกแบบโดยสถาปนิก',

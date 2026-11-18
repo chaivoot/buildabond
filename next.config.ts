@@ -5,7 +5,10 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@electric-sql/pglite'],
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/vi/**' },
+    ],
   },
   experimental: {
     // Slip and product photo uploads go through server actions (Vercel caps request bodies at 4.5 MB).

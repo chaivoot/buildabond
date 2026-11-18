@@ -19,6 +19,7 @@ import { css } from '../data/style';
 import { useI18n } from '../i18n/LocaleProvider';
 import { stockKind } from '../lib/cartItem';
 import { fillProductTokens } from '../lib/productTokens';
+import { youTubeEmbed, youTubeId, youTubeThumb } from '../lib/video';
 import './ProductPage.css';
 
 /** The route (`app/products/[slug]/page.tsx`) only renders this for sellable products. */
@@ -29,12 +30,21 @@ export function ProductPage({ product: p, related }: { product: Product; related
   const settings = useShopSettings();
   const { add, openDrawer } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const [color, setColor] = useState(0);
   const [withMagnets, setWithMagnets] = useState(false);
   const inStock = p.stock === 'ready';
   const hasColors = p.colors.length > 0;
 
-  const gallery = d.gallery?.length ? d.gallery : p.img ? [{ src: p.img, alt: p.name }] : [];
+  const photos = d.gallery?.length ? d.gallery : p.img ? [{ src: p.img, alt: p.name }] : [];
+  // Videos follow the photos in the same gallery; the player loads only when one is played.
+  const videoIds = (d.videos ?? []).map(youTubeId).filter((id): id is string => !!id);
+  const gallery = [
+    ...photos.map((g) => ({ ...g, video: undefined as string | undefined })),
+    ...videoIds.map((id, i) => ({ src: youTubeThumb(id), alt: pt.videoLabel(i + 1), video: id })),
+  ];
+  const current = gallery[imgIdx];
+  const pick = (i: number) => { setImgIdx(i); setPlaying(!!gallery[i]?.video); };
   const offersMagnets = p.magnets && p.magnetCount > 0;
   const magnets = offersMagnets && withMagnets ? p.magnetCount : 0;
   const line = { slug: p.slug, qty: 1, color, magnets };
@@ -83,14 +93,29 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
         <section className="container split" style={{ paddingTop: 12, gap: '28px 48px' }}>
           <div style={{ flex: '1 1 420px' }}>
-            <div className="pdp-main-img">
-              {gallery[imgIdx] && <Image priority fill sizes={SIZES.half} src={gallery[imgIdx].src} alt={gallery[imgIdx].alt} />}
+            <div className="pdp-main-img" data-video={!!current?.video}>
+              {current?.video && playing ? (
+                <iframe
+                  src={youTubeEmbed(current.video)}
+                  title={current.alt}
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                />
+              ) : current?.video ? (
+                <button type="button" className="pdp-play" aria-label={pt.playVideo} onClick={() => setPlaying(true)}>
+                  <Image fill sizes={SIZES.half} src={current.src} alt="" />
+                  <PlayIcon />
+                </button>
+              ) : (
+                current && <Image priority fill sizes={SIZES.half} src={current.src} alt={current.alt} />
+              )}
             </div>
             {gallery.length > 1 && (
               <div className="pdp-thumbs">
                 {gallery.map((g, i) => (
-                  <button key={i} type="button" aria-label={pt.viewImage(i + 1)} aria-pressed={i === imgIdx} onClick={() => setImgIdx(i)}>
+                  <button key={i} type="button" aria-label={g.video ? g.alt : pt.viewImage(i + 1)} aria-pressed={i === imgIdx} onClick={() => pick(i)}>
                     <Image src={g.src} alt="" fill sizes="140px" />
+                    {g.video && <PlayIcon small />}
                   </button>
                 ))}
               </div>
@@ -218,5 +243,15 @@ export function ProductPage({ product: p, related }: { product: Product; related
         </section>
       </main>
     </>
+  );
+}
+
+function PlayIcon({ small }: { small?: boolean }) {
+  const size = small ? 28 : 64;
+  return (
+    <svg className="pdp-play__icon" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="32" fill="rgba(0,0,0,0.6)" />
+      <path d="M26 20 L46 32 L26 44 Z" fill="#fff" />
+    </svg>
   );
 }
