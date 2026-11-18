@@ -14,6 +14,9 @@ export interface CartItem extends CartLineInput {
   kg: number;
   /** Thai colour label, translated when shown */
   colorTh?: string;
+  /** Size label in Thai and English (English may be empty) */
+  sizeTh?: string;
+  sizeEn?: string;
   kind: 'readyFinish' | 'ready' | 'preorder' | 'custom';
 }
 
@@ -25,6 +28,7 @@ export const itemName = (i: CartItem, t: Dict) => (i.kind === 'custom' ? t.cart.
 export function itemOptions(i: CartItem, lang: Locale, t: Dict): string {
   const parts = [
     i.custom ? `${i.custom.w}×${i.custom.l}×${i.custom.h} cm` : null,
+    i.sizeTh ? (lang === 'en' && i.sizeEn ? i.sizeEn : i.sizeTh) : null,
     i.colorTh ? colorLabel(i.colorTh, lang) : null,
     i.magnets ? t.product.magnetsShort(i.magnets) : null,
   ].filter(Boolean);

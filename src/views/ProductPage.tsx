@@ -25,13 +25,16 @@ import './ProductPage.css';
 /** The route (`app/products/[slug]/page.tsx`) only renders this for sellable products. */
 export function ProductPage({ product: p, related }: { product: Product; related: Product[] }) {
   const d = p.detail;
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const pt = t.product;
   const settings = useShopSettings();
   const { add, openDrawer } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [color, setColor] = useState(0);
+  const [size, setSize] = useState(0);
+  // A colour with its own photo takes over the main frame until a thumbnail is picked.
+  const [colorShown, setColorShown] = useState(false);
   const [withMagnets, setWithMagnets] = useState(false);
   const inStock = p.stock === 'ready';
   const hasColors = p.colors.length > 0;
@@ -44,10 +47,16 @@ export function ProductPage({ product: p, related }: { product: Product; related
     ...videoIds.map((id, i) => ({ src: youTubeThumb(id), alt: pt.videoLabel(i + 1), video: id })),
   ];
   const current = gallery[imgIdx];
-  const pick = (i: number) => { setImgIdx(i); setPlaying(!!gallery[i]?.video); };
+  const pick = (i: number) => { setImgIdx(i); setColorShown(false); setPlaying(!!gallery[i]?.video); };
   const offersMagnets = p.magnets && p.magnetCount > 0;
   const magnets = offersMagnets && withMagnets ? p.magnetCount : 0;
-  const line = { slug: p.slug, qty: 1, color, magnets };
+  const sizes = d.sizes ?? [];
+  const sizeName = (i: number) => (lang === 'en' && sizes[i]?.labelEn) || sizes[i]?.label || '';
+  const colorKey = (i: number) => (p.colors[i] ? p.colors[i].labelTh ?? p.colors[i].label : '');
+  const colorImg = hasColors ? d.colorImages?.[colorKey(color)] : undefined;
+  const showColor = colorShown && !!colorImg;
+  const chooseColor = (i: number) => { setColor(i); setColorShown(!!d.colorImages?.[colorKey(i)]); setPlaying(false); };
+  const line = { slug: p.slug, qty: 1, color, magnets, ...(sizes.length ? { size } : {}) };
   const priced = priceLine(line, p, settings);
   const total = priced?.unitPrice ?? p.price;
   const colorName = hasColors ? p.colors[color].name : '';
@@ -63,11 +72,12 @@ export function ProductPage({ product: p, related }: { product: Product; related
       ...line,
       magnets,
       colorTh: c ? c.labelTh ?? c.label : undefined,
+      ...(sizes.length ? { sizeTh: sizes[size].label, sizeEn: sizes[size].labelEn || undefined } : {}),
       name: p.name,
       kind: stockKind(p),
       unitPrice: priced.unitPrice,
       kg: priced.kg,
-      img: p.img,
+      img: colorImg || p.img,
     });
     openDrawer();
   };
@@ -78,7 +88,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
       <div className="buy-bar">
         <div className="container buy-bar__inner">
           <div className="buy-bar__text">
-            <span className="buy-bar__name">{p.name}{colorName ? ` · ${colorName}` : ''}</span>
+            <span className="buy-bar__name">{p.name}{sizes.length ? ` · ${sizeName(size)}` : ''}{colorName ? ` · ${colorName}` : ''}</span>
             <span className="small">{baht(total)}{magnets ? ` · ${pt.magnetsShort(magnets)}` : ''}</span>
           </div>
           <button type="button" className="btn btn--primary btn--sm" style={{ fontSize: 15, padding: '0 20px' }} onClick={addToCart}>{pt.addToCart}</button>
@@ -93,8 +103,10 @@ export function ProductPage({ product: p, related }: { product: Product; related
 
         <section className="container split" style={{ paddingTop: 12, gap: '28px 48px' }}>
           <div style={{ flex: '1 1 420px' }}>
-            <div className="pdp-main-img" data-video={!!current?.video}>
-              {current?.video && playing ? (
+            <div className="pdp-main-img" data-video={!showColor && !!current?.video}>
+              {showColor ? (
+                <Image priority fill sizes={SIZES.half} src={colorImg ?? ''} alt={`${p.name} · ${colorName}`} />
+              ) : current?.video && playing ? (
                 <iframe
                   src={youTubeEmbed(current.video)}
                   title={current.alt}
@@ -113,7 +125,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
             {gallery.length > 1 && (
               <div className="pdp-thumbs">
                 {gallery.map((g, i) => (
-                  <button key={i} type="button" aria-label={g.video ? g.alt : pt.viewImage(i + 1)} aria-pressed={i === imgIdx} onClick={() => pick(i)}>
+                  <button key={i} type="button" aria-label={g.video ? g.alt : pt.viewImage(i + 1)} aria-pressed={!showColor && i === imgIdx} onClick={() => pick(i)}>
                     <Image src={g.src} alt="" fill sizes="140px" />
                     {g.video && <PlayIcon small />}
                   </button>
@@ -135,7 +147,21 @@ export function ProductPage({ product: p, related }: { product: Product; related
               <p className="small" style={{ marginTop: 6, fontSize: 14 }}>{leadText}</p>
             </div>
 
-            {hasColors && <ColorPicker legend={p.colorsLabel || pt.colorFallback} colors={p.colors} value={color} onChange={setColor} />}
+            {sizes.length > 0 && (
+              <fieldset className="plain">
+                <legend>{pt.sizeLegend}<span style={{ fontWeight: 400, color: 'var(--ink-2)' }}> · {sizeName(size)}</span></legend>
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {sizes.map((s, i) => (
+                    <button key={i} type="button" className="option pdp-size" aria-pressed={i === size} onClick={() => setSize(i)}>
+                      <span>{sizeName(i)}</span>
+                      <span className="small">{baht(s.price)}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
+            {hasColors && <ColorPicker legend={p.colorsLabel || pt.colorFallback} colors={p.colors} value={color} onChange={chooseColor} />}
 
             {offersMagnets && (
               <label className="magnet-option" data-on={withMagnets}>

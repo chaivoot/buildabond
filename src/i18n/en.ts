@@ -109,6 +109,7 @@ export const en: Dict = {
     leadReady: 'Assembled and ready. The rubber top in your colour takes 3-5 days before shipping.',
     leadPreorder: 'Made to order, about 28-35 days.',
     colorFallback: 'Colour',
+    sizeLegend: 'Size',
     magnetsTitle: (n) => `Add ${n} magnets`,
     magnetsHintBoard: 'Fitted under the board so it locks onto a Target Box or Slant Box.',
     magnetsHintBase: 'Fitted on top of the box to hold a Place Board in place.',

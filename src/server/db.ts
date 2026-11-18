@@ -1,3 +1,5 @@
+import { CATALOG } from '../data/catalog';
+import type { ProductDetail, ProductText } from '../lib/types';
 import { SEED_EN, SEED_PRODUCTS, SEED_SETTINGS } from '../data/seed';
 
 /**
@@ -13,6 +15,35 @@ interface Driver {
 }
 
 const databaseUrl = () => process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+
+/**
+ * Prices, SKUs and magnet counts come from the price list and always apply. Sizes, photos and colour photos only
+ * fill in what the owner hasn't set: photos replace the gallery only while it still holds the design file's
+ * placeholders (/images/*.jpg), so anything uploaded in the admin is kept.
+ */
+export async function applyCatalog(d: Driver) {
+  const legacy = (src: unknown) => typeof src === 'string' && (src === '' || /^\/images\/[^/]+$/.test(src));
+  const rows = await d.query<{ slug: string; img: string; detail: ProductDetail; en: ProductText; th: string }>(`SELECT slug, img, detail, en, th FROM products`);
+  for (const r of rows) {
+    const u = CATALOG[r.slug];
+    if (!u) continue;
+    const detail = { ...(r.detail ?? {}) };
+    if (u.sizes && !detail.sizes?.length) detail.sizes = u.sizes;
+    const photosUntouched = legacy(r.img) && (detail.gallery ?? []).every((g) => legacy(g.src));
+    if (u.gallery && photosUntouched) detail.gallery = u.gallery.map(({ src, alt }) => ({ src, alt }));
+    if (u.colorImages && !Object.keys(detail.colorImages ?? {}).length) detail.colorImages = u.colorImages;
+    const en = { ...(r.en ?? {}) };
+    if (u.priceLabelEn) en.priceLabel = u.priceLabelEn;
+    if (u.desc) en.desc = u.desc;
+    if (u.gallery && photosUntouched) en.galleryAlts = u.gallery.map((g) => g.altEn);
+    await d.query(
+      `UPDATE products SET price = $2, price_label = $3, th = $4, sku = COALESCE($5, sku), magnet_count = COALESCE($6, magnet_count),
+         img = $7, cover = COALESCE($8, cover), detail = $9, en = $10 WHERE slug = $1`,
+      [r.slug, u.price, u.priceLabel, u.th ?? r.th, u.sku ?? null, u.magnetCount ?? null,
+        photosUntouched && u.img ? u.img : r.img, photosUntouched && u.cover !== undefined ? u.cover : null, json(detail), json(en)],
+    );
+  }
+}
 
 const PLACE_BOARD_SAMPLE_VIDEO = 'https://www.youtube.com/shorts/cVXWdC-6DV4';
 
@@ -232,6 +263,8 @@ async function migrate(d: Driver) {
       ['place-board', JSON.stringify([PLACE_BOARD_SAMPLE_VIDEO])],
     );
   });
+  // Owner's price list, sizes and real product photos (src/data/catalog.ts).
+  await once(d, 'migration:catalog-2', () => applyCatalog(d));
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
       await d.query(`UPDATE products SET en = $2 WHERE slug = $1 AND en = '{}'::jsonb`, [slug, json(en)]);

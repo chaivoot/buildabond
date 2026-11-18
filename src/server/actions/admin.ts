@@ -71,7 +71,19 @@ export async function saveProduct(product: Product, previousSlug: string | null)
   const videos = (product.detail.videos ?? []).map((v) => v.trim()).filter(Boolean);
   const badVideo = videos.find((v) => !youTubeId(v));
   if (badVideo) return { error: `ลิงก์วิดีโอไม่ถูกต้อง: ${badVideo}` };
-  product = { ...product, detail: { ...product.detail, videos } };
+  const sizes = (product.detail.sizes ?? []).map((z) => ({
+    label: String(z.label ?? '').trim().slice(0, 60),
+    ...(String(z.labelEn ?? '').trim() ? { labelEn: String(z.labelEn).trim().slice(0, 60) } : {}),
+    price: Math.max(0, Math.round(Number(z.price) || 0)),
+    kg: Math.max(0, Math.round((Number(z.kg) || 0) * 100) / 100),
+  }));
+  if (sizes.length > 12) return { error: 'ใส่ได้ไม่เกิน 12 ขนาด' };
+  if (sizes.some((z) => !z.label)) return { error: 'กรอกชื่อขนาดให้ครบทุกแถว' };
+  if (sizes.some((z) => z.price <= 0)) return { error: 'กรอกราคาของทุกขนาด' };
+  const colorImages = Object.fromEntries(
+    Object.entries(product.detail.colorImages ?? {}).filter(([k, v]) => typeof v === 'string' && v && product.colors.some((c) => (c.labelTh ?? c.label) === k)),
+  );
+  product = { ...product, detail: { ...product.detail, videos, sizes, colorImages } };
   if (slug !== previousSlug && (await getProduct(slug))) return { error: 'มีสินค้าที่ใช้ลิงก์นี้แล้ว' };
   await upsertProduct({ ...product, slug }, previousSlug ?? undefined);
   refreshStore();

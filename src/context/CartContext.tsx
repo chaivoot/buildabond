@@ -30,7 +30,7 @@ const STORAGE_KEY = 'bb-cart-v3';
 const OLD_KEYS = ['bb-cart-v2'];
 
 const lineId = (i: Omit<CartItem, 'id' | 'qty'>) =>
-  [i.slug, i.color ?? 0, i.magnets ?? 0, i.custom ? `${i.custom.w}x${i.custom.l}x${i.custom.h}` : ''].join('|');
+  [i.slug, i.size ?? 0, i.color ?? 0, i.magnets ?? 0, i.custom ? `${i.custom.w}x${i.custom.l}x${i.custom.h}` : ''].join('|');
 
 const CartContext = createContext<CartState | null>(null);
 

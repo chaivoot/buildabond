@@ -94,3 +94,15 @@
 .admin-timeline__change { margin-top: 6px; line-height: 1.6; }
 .admin-timeline__change del { color: var(--ink-3); }
 .admin-timeline__change ins { text-decoration: none; font-weight: 600; }
+
+.admin-gallery__empty { position: absolute; inset: 0; display: grid; place-items: center; }
+.admin-sizes { display: flex; flex-direction: column; gap: 8px; }
+.admin-sizes__row { display: grid; grid-template-columns: minmax(120px, 2fr) minmax(110px, 2fr) minmax(80px, 1fr) minmax(80px, 1fr) auto; gap: 8px; align-items: center; }
+.admin-sizes__head { color: var(--ink-2); }
+.admin-sizes__btns { display: inline-flex; gap: 2px; }
+.admin-sizes__btns button { min-width: 34px; height: 36px; border: 0; background: transparent; border-radius: 8px; color: var(--ink); }
+.admin-sizes__btns button:hover:not(:disabled) { background: var(--sand); }
+@media (max-width: 640px) {
+  .admin-sizes__head { display: none; }
+  .admin-sizes__row { grid-template-columns: 1fr 1fr; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); }
+}

@@ -3,6 +3,7 @@
  * After that, everything here is edited from /admin. (No demo orders, customers or requests.)
  */
 import type { ColorOption, Product, ProductText, ShopSettings } from '../lib/types';
+import { CATALOG, catalogDetail, catalogEn } from './catalog';
 
 export const RUBBER_COLORS: ColorOption[] = [
   { label: 'ฟ้า', name: 'ฟ้า Sky Blue', swatch: '#5FAEDB' },
@@ -148,7 +149,17 @@ export const SEED_EN: Record<string, ProductText> = {
   'rabbit-dummy': { desc: '500 g, real rabbit fur' },
 };
 
-export const SEED_PRODUCTS: Product[] = list.map((p, i) => ({ ...p, sort: (i + 1) * 10, en: SEED_EN[p.slug] ?? {} }));
+export const SEED_PRODUCTS: Product[] = list.map((p, i) => {
+  const product: Product = { ...p, sort: (i + 1) * 10, en: SEED_EN[p.slug] ?? {} };
+  const u = CATALOG[p.slug];
+  if (!u) return product;
+  return {
+    ...product,
+    price: u.price, priceLabel: u.priceLabel, th: u.th ?? product.th, sku: u.sku ?? product.sku,
+    magnetCount: u.magnetCount ?? product.magnetCount, img: u.img ?? product.img, cover: u.cover ?? product.cover,
+    detail: catalogDetail(u, product.detail), en: catalogEn(u, product.en),
+  };
+});
 
 export const SEED_SETTINGS: ShopSettings = {
   bank: { name: 'ธนาคารกรุงไทย (KTB)', nameEn: 'Krungthai Bank (KTB)', number: '539-1-36496-5', holder: 'Mrs. Natigarn Suwannapet' },
