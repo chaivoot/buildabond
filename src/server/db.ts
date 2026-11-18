@@ -14,6 +14,8 @@ interface Driver {
 
 const databaseUrl = () => process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
 
+const PLACE_BOARD_SAMPLE_VIDEO = 'https://www.youtube.com/shorts/cVXWdC-6DV4';
+
 export const isPersistent = () => databaseUrl() !== '';
 
 async function connect(): Promise<Driver> {
@@ -223,6 +225,13 @@ async function migrate(d: Driver) {
     }
   });
   // English copy for products seeded before the site was bilingual (only where none has been entered).
+  // Sample clip on the Place Board so the video gallery has something to show; the owner can change it in the admin.
+  await once(d, 'migration:video-sample-1', async () => {
+    await d.query(
+      `UPDATE products SET detail = jsonb_set(detail, '{videos}', $2::jsonb) WHERE slug = $1 AND NOT (detail ? 'videos')`,
+      ['place-board', JSON.stringify([PLACE_BOARD_SAMPLE_VIDEO])],
+    );
+  });
   await once(d, 'migration:en-1', async () => {
     for (const [slug, en] of Object.entries(SEED_EN)) {
       await d.query(`UPDATE products SET en = $2 WHERE slug = $1 AND en = '{}'::jsonb`, [slug, json(en)]);

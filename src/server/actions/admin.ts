@@ -1,5 +1,6 @@
 'use server';
 
+import { youTubeId } from '../../lib/video';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -67,6 +68,10 @@ export async function saveProduct(product: Product, previousSlug: string | null)
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return { error: 'ลิงก์สินค้า (slug) ใช้ได้เฉพาะ a-z, 0-9 และ -' };
   if (!product.name.trim()) return { error: 'กรอกชื่อสินค้า' };
   if (product.magnets && !(product.magnetCount >= 1)) return { error: 'ใส่จำนวนแม่เหล็กที่ใช้ (อย่างน้อย 1 ชิ้น)' };
+  const videos = (product.detail.videos ?? []).map((v) => v.trim()).filter(Boolean);
+  const badVideo = videos.find((v) => !youTubeId(v));
+  if (badVideo) return { error: `ลิงก์วิดีโอไม่ถูกต้อง: ${badVideo}` };
+  product = { ...product, detail: { ...product.detail, videos } };
   if (slug !== previousSlug && (await getProduct(slug))) return { error: 'มีสินค้าที่ใช้ลิงก์นี้แล้ว' };
   await upsertProduct({ ...product, slug }, previousSlug ?? undefined);
   refreshStore();

@@ -116,6 +116,8 @@ export const en: Dict = {
     addToCart: 'Add to cart',
     shippingNote: (tiers) => `Shipping is based on the order’s total weight: ${tiers}`,
     viewImage: (i) => `View image ${i}`,
+    videoLabel: (i) => `Video ${i}`,
+    playVideo: 'Play video',
     materialEyebrow: 'Materials',
     materialTitle: 'Playground-grade rubber on export-grade rubberwood',
     materialBody: 'Textured EPDM for grip, takes impacts of up to 200 kg, with a structure designed by an architect.',

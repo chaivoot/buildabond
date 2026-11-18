@@ -8,6 +8,7 @@ import { CATEGORIES } from '../../data/products';
 import { COLOR_PRESETS } from '../../data/seed';
 import type { CategoryId, Product, ProductDetail, ProductText, StockStatus } from '../../lib/types';
 import { PRODUCT_TOKENS_HELP } from '../../lib/productTokens';
+import { youTubeId, youTubeThumb } from '../../lib/video';
 import { removeProduct, saveProduct, uploadProductImage } from '../../server/actions/admin';
 
 interface Props {
@@ -40,6 +41,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
   const [p, setP] = useState<Product>(product);
   const [specs, setSpecs] = useState(specsToText(product.detail.specs));
   const [specsEn, setSpecsEn] = useState(specsToText(product.en?.specs));
+  const [videos, setVideos] = useState((product.detail.videos ?? []).join('\n'));
   const [preset, setPreset] = useState(presetOf(product));
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -50,6 +52,8 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
   const setDetail = (d: Partial<ProductDetail>) => { setP((x) => ({ ...x, detail: { ...x.detail, ...d } })); setSaved(false); };
   const setEn = (d: Partial<ProductText>) => { setP((x) => ({ ...x, en: { ...x.en, ...d } })); setSaved(false); };
   const gallery = p.detail.gallery ?? [];
+  const videoLines = videos.split('\n').map((l) => l.trim()).filter(Boolean);
+  const badVideos = videoLines.filter((l) => !youTubeId(l));
 
   const upload = async (file: File | undefined): Promise<string | null> => {
     if (!file) return null;
@@ -74,11 +78,12 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
 
   const save = () => {
     setError('');
+    if (badVideos.length) return setError(`ลิงก์วิดีโอไม่ถูกต้อง: ${badVideos[0]}`);
     const chosen = COLOR_PRESETS.find((c) => c.id === preset);
     const next: Product = {
       ...p,
       ...(chosen ? { colors: chosen.colors, colorsLabel: chosen.legend, swatchesLabel: chosen.swatchesLabel } : {}),
-      detail: { ...p.detail, specs: textToSpecs(specs) },
+      detail: { ...p.detail, specs: textToSpecs(specs), videos: videoLines },
       en: { ...p.en, specs: textToSpecs(specsEn) },
     };
     start(async () => {
@@ -215,6 +220,25 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
                 onChange={async (e) => { const url = await upload(e.target.files?.[0]); if (url) setDetail({ gallery: [...gallery, { src: url, alt: p.name }] }); e.target.value = ''; }} />
             </label>
           </div>
+        </section>
+
+        <section className="admin-card">
+          <h2>วิดีโอ</h2>
+          <div className="admin-grid">
+            <Field label="ลิงก์ YouTube" hint="บรรทัดละ 1 ลิงก์ ใช้ได้ทั้งคลิปปกติและ Shorts · วิดีโอจะต่อท้ายรูปในแกลเลอรีหน้าสินค้า" wide>
+              <textarea className="input" rows={3} value={videos} onChange={(e) => { setVideos(e.target.value); setSaved(false); }} placeholder="https://www.youtube.com/shorts/…" />
+            </Field>
+          </div>
+          {badVideos.length > 0 && <p className="small" role="alert" style={{ marginTop: 8, color: 'var(--danger, #b42318)' }}>ลิงก์นี้ไม่ใช่ YouTube: {badVideos.join(', ')}</p>}
+          {videoLines.some((l) => youTubeId(l)) && (
+            <div className="admin-gallery" style={{ marginTop: 12 }}>
+              {videoLines.map((l) => youTubeId(l)).filter((id): id is string => !!id).map((id, i) => (
+                <a key={`${id}-${i}`} className="admin-gallery__item" href={`https://youtu.be/${id}`} target="_blank" rel="noopener noreferrer" title="เปิดดูใน YouTube">
+                  <div className="admin-gallery__img"><Image src={youTubeThumb(id)} alt={`วิดีโอที่ ${i + 1}`} fill sizes="160px" /></div>
+                </a>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="admin-card">
