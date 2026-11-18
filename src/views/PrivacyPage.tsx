@@ -1,6 +1,5 @@
 'use client';
 
-import { SiteFooter } from '../components/SiteFooter';
 import { SiteHeader } from '../components/SiteHeader';
 import { PRIVACY } from '../content/privacy';
 import { SOCIAL } from '../data/social';
@@ -36,7 +35,6 @@ export function PrivacyPage() {
           </p>
         </section>
       </main>
-      <SiteFooter />
     </>
   );
 }
