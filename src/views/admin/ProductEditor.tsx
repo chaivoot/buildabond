@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { CATEGORIES } from '../../data/products';
 import { COLOR_PRESETS } from '../../data/seed';
 import type { CategoryId, Product, ProductDetail, ProductSize, ProductText, StockStatus } from '../../lib/types';
@@ -26,6 +26,21 @@ const textToSpecs = (t: string): [string, string][] =>
     return [k.trim(), rest.join('|').trim()];
   });
 
+type EditorTab = 'info' | 'price' | 'media' | 'en';
+const EDITOR_TABS: { id: EditorTab; label: string }[] = [
+  { id: 'info', label: 'ข้อมูลสินค้า' },
+  { id: 'price', label: 'ราคาและขนาด' },
+  { id: 'media', label: 'รูปและวิดีโอ' },
+  { id: 'en', label: 'English' },
+];
+
+/** Open the tab that holds the field a save error is about. */
+function tabForError(error: string): EditorTab {
+  if (/ขนาด|แม่เหล็ก|ราคา/.test(error)) return 'price';
+  if (/วิดีโอ|รูป/.test(error)) return 'media';
+  return 'info';
+}
+
 function Field({ label, hint, children, wide }: { label: string; hint?: string; children: ReactNode; wide?: boolean }) {
   return (
     <label className={`field${wide ? ' span-all' : ''}`}>
@@ -47,10 +62,20 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pending, start] = useTransition();
+  const [dirty, setDirty] = useState(isNew);
+  const [tab, setTab] = useState<EditorTab>('info');
+  const touch = () => { setSaved(false); setDirty(true); };
+  // Warn before leaving the page with unsaved edits.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
-  const set = <K extends keyof Product>(k: K, v: Product[K]) => { setP((x) => ({ ...x, [k]: v })); setSaved(false); };
-  const setDetail = (d: Partial<ProductDetail>) => { setP((x) => ({ ...x, detail: { ...x.detail, ...d } })); setSaved(false); };
-  const setEn = (d: Partial<ProductText>) => { setP((x) => ({ ...x, en: { ...x.en, ...d } })); setSaved(false); };
+  const set = <K extends keyof Product>(k: K, v: Product[K]) => { setP((x) => ({ ...x, [k]: v })); touch(); };
+  const setDetail = (d: Partial<ProductDetail>) => { setP((x) => ({ ...x, detail: { ...x.detail, ...d } })); touch(); };
+  const setEn = (d: Partial<ProductText>) => { setP((x) => ({ ...x, en: { ...x.en, ...d } })); touch(); };
   const gallery = p.detail.gallery ?? [];
   const sizes = p.detail.sizes ?? [];
   const setSizeAt = (i: number, patch: Partial<ProductSize>) => setDetail({ sizes: sizes.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
@@ -89,7 +114,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
 
   const save = () => {
     setError('');
-    if (badVideos.length) return setError(`ลิงก์วิดีโอไม่ถูกต้อง: ${badVideos[0]}`);
+    if (badVideos.length) { setTab('media'); return setError(`ลิงก์วิดีโอไม่ถูกต้อง: ${badVideos[0]}`); }
     const chosen = COLOR_PRESETS.find((c) => c.id === preset);
     const next: Product = {
       ...p,
@@ -99,8 +124,9 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
     };
     start(async () => {
       const res = await saveProduct(next, isNew ? null : product.slug).catch((e: Error) => ({ error: e.message }));
-      if (res.error) return setError(res.error);
+      if (res.error) { setTab(tabForError(res.error)); return setError(res.error); }
       setSaved(true);
+      setDirty(false);
       if (isNew || next.slug !== product.slug) router.replace(`/admin/products/${next.slug.trim().toLowerCase()}`);
       else router.refresh();
     });
@@ -118,8 +144,16 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
         )}
       </div>
 
-      <div className="stack" style={{ marginTop: 18, gap: 18 }}>
-        <section className="admin-card">
+      <div role="tablist" aria-label="ส่วนของข้อมูลสินค้า" className="admin__tabs">
+        {EDITOR_TABS.map((t) => (
+          <button key={t.id} type="button" role="tab" id={`tab-${t.id}`} aria-selected={tab === t.id} aria-controls="editor-panel" onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="stack" id="editor-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} style={{ marginTop: 18, gap: 18 }}>
+        <section hidden={tab !== 'info'} className="admin-card">
           <h2>ข้อมูลหลัก</h2>
           <div className="admin-grid">
             <Field label="ชื่อสินค้า"><input className="input" value={p.name} onChange={(e) => set('name', e.target.value)} required /></Field>
@@ -138,7 +172,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           </div>
         </section>
 
-        <section className="admin-card">
+        <section hidden={tab !== 'price'} className="admin-card">
           <h2>ราคาและการขาย</h2>
           <div className="admin-grid">
             <Field label="ราคา (บาท)" hint={sizes.length ? 'มีหลายขนาด: ใช้ราคาของแต่ละขนาดด้านล่างแทน' : 'ราคาที่ใช้คิดเงินในตะกร้า'}>
@@ -157,7 +191,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
               </select>
             </Field>
             <Field label="ตัวเลือกสี">
-              <select className="input" value={preset} onChange={(e) => { setPreset(e.target.value); setSaved(false); }}>
+              <select className="input" value={preset} onChange={(e) => { setPreset(e.target.value); touch(); }}>
                 {COLOR_PRESETS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 {preset === 'keep' && <option value="keep">ใช้ชุดสีเดิม</option>}
               </select>
@@ -186,7 +220,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           </div>
         </section>
 
-        <section className="admin-card">
+        <section hidden={tab !== 'price'} className="admin-card">
           <h2>ขนาด</h2>
           <p className="small" style={{ marginBottom: 12 }}>
             ถ้าสินค้ามีหลายขนาด เพิ่มไว้ที่นี่ ลูกค้าจะเลือกขนาดในหน้าสินค้า และราคากับน้ำหนักจะเปลี่ยนตามขนาดที่เลือก ไม่มีหลายขนาดก็เว้นว่างไว้
@@ -216,7 +250,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           </button>
         </section>
 
-        <section className="admin-card" lang="en">
+        <section hidden={tab !== 'en'} className="admin-card" lang="en">
           <h2>ภาษาอังกฤษ (English)</h2>
           <p className="small" style={{ marginBottom: 12 }}>แสดงให้ลูกค้าที่เข้าเว็บจากต่างประเทศ หรือเลือก EN ช่องที่ว่างไว้จะใช้ข้อความภาษาไทยแทน</p>
           <div className="admin-grid">
@@ -225,12 +259,12 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
             <Field label="Price label" hint="e.g. From ฿1,590"><input className="input" value={p.en?.priceLabel ?? ''} onChange={(e) => setEn({ priceLabel: e.target.value })} placeholder={p.priceLabel} /></Field>
             <Field label="Badge"><input className="input" value={p.en?.badge ?? ''} onChange={(e) => setEn({ badge: e.target.value })} placeholder={p.badge} /></Field>
             <Field label="Specifications" hint="One per line: Label | Value" wide>
-              <textarea className="input" rows={5} value={specsEn} onChange={(e) => { setSpecsEn(e.target.value); setSaved(false); }} placeholder={'Size | 80 L × 33 W × 1.5 H cm\nWeight | 3.5 kg'} />
+              <textarea className="input" rows={5} value={specsEn} onChange={(e) => { setSpecsEn(e.target.value); touch(); }} placeholder={'Size | 80 L × 33 W × 1.5 H cm\nWeight | 3.5 kg'} />
             </Field>
           </div>
         </section>
 
-        <section className="admin-card">
+        <section hidden={tab !== 'media'} className="admin-card">
           <h2>รูปภาพ</h2>
           <p className="small" style={{ marginBottom: 12 }}>รูปแรกในแกลเลอรีจะเป็นรูปหลักในหน้าสินค้า รูปหน้าปกใช้ในหน้ารวมสินค้าและตะกร้า</p>
           <div className="admin-gallery">
@@ -264,7 +298,7 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
         </section>
 
         {shownColors.length > 0 && (
-          <section className="admin-card">
+          <section hidden={tab !== 'media'} className="admin-card">
             <h2>รูปตามสี</h2>
             <p className="small" style={{ marginBottom: 12 }}>ใส่รูปของแต่ละสี เมื่อลูกค้าเลือกสีนั้น รูปหลักในหน้าสินค้าจะเปลี่ยนเป็นรูปนี้ และใช้เป็นรูปในตะกร้า สีที่ไม่มีรูปจะใช้รูปแกลเลอรีตามปกติ</p>
             <div className="admin-gallery">
@@ -293,11 +327,11 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           </section>
         )}
 
-        <section className="admin-card">
+        <section hidden={tab !== 'media'} className="admin-card">
           <h2>วิดีโอ</h2>
           <div className="admin-grid">
             <Field label="ลิงก์ YouTube" hint="บรรทัดละ 1 ลิงก์ ใช้ได้ทั้งคลิปปกติและ Shorts · วิดีโอจะต่อท้ายรูปในแกลเลอรีหน้าสินค้า" wide>
-              <textarea className="input" rows={3} value={videos} onChange={(e) => { setVideos(e.target.value); setSaved(false); }} placeholder="https://www.youtube.com/shorts/…" />
+              <textarea className="input" rows={3} value={videos} onChange={(e) => { setVideos(e.target.value); touch(); }} placeholder="https://www.youtube.com/shorts/…" />
             </Field>
           </div>
           {badVideos.length > 0 && <p className="small" role="alert" style={{ marginTop: 8, color: 'var(--danger, #b42318)' }}>ลิงก์นี้ไม่ใช่ YouTube: {badVideos.join(', ')}</p>}
@@ -312,11 +346,11 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           )}
         </section>
 
-        <section className="admin-card">
+        <section hidden={tab !== 'info'} className="admin-card">
           <h2>สเปกและสินค้าที่ใช้ร่วมกัน</h2>
           <div className="admin-grid">
             <Field label="สเปก" hint={`บรรทัดละรายการ รูปแบบ หัวข้อ | รายละเอียด · ใช้ตัวแปรได้: ${PRODUCT_TOKENS_HELP}`} wide>
-              <textarea className="input" rows={7} value={specs} onChange={(e) => { setSpecs(e.target.value); setSaved(false); }} placeholder={'ขนาด | ยาว 80 × กว้าง 33 × สูง 1.5 cm\nน้ำหนัก | 3.5 กก.'} />
+              <textarea className="input" rows={7} value={specs} onChange={(e) => { setSpecs(e.target.value); touch(); }} placeholder={'ขนาด | ยาว 80 × กว้าง 33 × สูง 1.5 cm\nน้ำหนัก | 3.5 กก.'} />
             </Field>
           </div>
           <fieldset className="plain" style={{ marginTop: 14 }}>
@@ -335,25 +369,32 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
             </div>
           </fieldset>
         </section>
+        {!isNew && tab === 'info' && (
+          <section className="admin-card admin-danger">
+            <div>
+              <h2>ลบสินค้า</h2>
+              <p className="small">ลบถาวร กู้คืนไม่ได้ ถ้าแค่ไม่อยากให้ขาย ให้เอาเครื่องหมาย "แสดงบนหน้าร้าน" ในแท็บราคาและขนาดออกแทน</p>
+            </div>
+            <button
+              type="button"
+              className="btn btn--square btn--danger"
+              style={{ fontSize: 14 }}
+              disabled={pending}
+              onClick={() => confirm(`ลบ ${product.name} ถาวร? ถ้าแค่ไม่อยากให้ขาย ให้เอาเครื่องหมาย "แสดงบนหน้าร้าน" ออกแทน`) && start(() => removeProduct(product.slug))}
+            >
+              ลบสินค้า
+            </button>
+          </section>
+        )}
       </div>
 
-      <div className="admin-actions">
+      <div className="admin-actions" data-dirty={dirty}>
         <button type="button" className="btn btn--primary btn--square" onClick={save} disabled={pending || uploading}>
           {pending ? 'กำลังบันทึก…' : isNew ? 'สร้างสินค้า' : 'บันทึก'}
         </button>
+        {dirty && !pending && !error && <span className="admin-actions__status">● มีการแก้ไขที่ยังไม่บันทึก</span>}
         {saved && !pending && <span className="admin-note admin-note--ok" style={{ padding: '8px 12px' }}>บันทึกแล้ว หน้าร้านอัปเดตแล้ว</span>}
         {error && <span role="alert" className="admin-note admin-note--warn" style={{ padding: '8px 12px' }}>{error}</span>}
-        {!isNew && (
-          <button
-            type="button"
-            className="btn btn--square btn--danger"
-            style={{ marginLeft: 'auto', fontSize: 14 }}
-            disabled={pending}
-            onClick={() => confirm(`ลบ ${product.name} ถาวร? ถ้าแค่ไม่อยากให้ขาย ให้เอาเครื่องหมาย "แสดงบนหน้าร้าน" ออกแทน`) && start(() => removeProduct(product.slug))}
-          >
-            ลบสินค้า
-          </button>
-        )}
       </div>
     </>
   );

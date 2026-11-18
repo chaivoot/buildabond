@@ -10,9 +10,10 @@ export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
   const [s, setS] = useState(settings);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [pending, start] = useTransition();
 
-  const patch = (p: Partial<ShopSettings>) => { setS((x) => ({ ...x, ...p })); setSaved(false); };
+  const patch = (p: Partial<ShopSettings>) => { setS((x) => ({ ...x, ...p })); setSaved(false); setDirty(true); };
   const setTier = (i: number, k: 'upToKg' | 'fee', v: number) =>
     patch({ shipping: s.shipping.map((t, j) => (j === i ? { ...t, [k]: v } : t)) });
   const promptpayValid = !s.promptpay || promptPayPayload(s.promptpay) !== null;
@@ -23,7 +24,7 @@ export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
     start(async () => {
       const res = await updateSettings(s).catch((e: Error) => ({ error: e.message }));
       if (res.error) setError(res.error);
-      else setSaved(true);
+      else { setSaved(true); setDirty(false); }
     });
   };
 
@@ -78,8 +79,9 @@ export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
         </section>
       </div>
 
-      <div className="admin-actions" style={{ maxWidth: 860 }}>
+      <div className="admin-actions" data-dirty={dirty} style={{ maxWidth: 860 }}>
         <button type="button" className="btn btn--primary btn--square" onClick={save} disabled={pending}>{pending ? 'กำลังบันทึก…' : 'บันทึก'}</button>
+        {dirty && !pending && !error && <span className="admin-actions__status">● มีการแก้ไขที่ยังไม่บันทึก</span>}
         {saved && !pending && <span className="admin-note admin-note--ok" style={{ padding: '8px 12px' }}>บันทึกแล้ว หน้าร้านอัปเดตแล้ว</span>}
         {error && <span role="alert" className="admin-note admin-note--warn" style={{ padding: '8px 12px' }}>{error}</span>}
       </div>

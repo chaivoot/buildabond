@@ -24,13 +24,13 @@ export function AdminShell({ warnings, children }: { warnings: string[]; childre
         <div className="admin__bar">
           <Image src={img.logo} alt="" width={36} height={36} style={{ borderRadius: '50%' }} />
           <span className="num-display" style={{ fontWeight: 500, fontSize: 18 }}>Buildabond</span>
-          <span style={{ fontSize: 13, color: 'var(--on-dark-3)' }}>หลังบ้าน</span>
+          <span className="admin__bar-label">หลังบ้าน</span>
           <nav aria-label="เมนูหลังบ้าน" className="admin__nav">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} aria-current={n.match(path) ? 'page' : undefined}>{n.label}</Link>
             ))}
           </nav>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="admin__bar-end">
             <Link href="/" target="_blank" className="admin__bar-link">ดูหน้าร้าน ↗</Link>
             <form action={logout}>
               <button type="submit" className="admin__bar-link">ออกจากระบบ</button>
