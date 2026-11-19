@@ -30,6 +30,11 @@ const addressOf = (c: Customer): CustomerAddress => ({
 async function byEmail(email: string) {
   return (await sql<Customer>(`SELECT * FROM customers WHERE email = $1`, [email]))[0] ?? null;
 }
+/** Customer with this phone, for linking orders an admin entered without an email. */
+export async function customerIdByPhone(phoneRaw: string): Promise<string | null> {
+  return (await byPhone(normalizePhone(phoneRaw)))?.id ?? null;
+}
+
 async function byPhone(phone: string) {
   return (await sql<Customer>(`SELECT * FROM customers WHERE phone = $1`, [phone]))[0] ?? null;
 }

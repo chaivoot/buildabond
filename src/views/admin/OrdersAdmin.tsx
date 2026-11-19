@@ -9,7 +9,9 @@ import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
 import { formatPhone, normalizePhone, phoneSearchDigits } from '../../lib/phone';
 import type { Order } from '../../lib/types';
-import { markShipped, updateOrderStatus } from '../../server/actions/admin';
+import { markShipped, orderLinkForAdmin, updateOrderStatus } from '../../server/actions/admin';
+
+const SOURCE_LABEL: Record<string, string> = { line: 'LINE', facebook: 'Facebook', instagram: 'Instagram', phone: 'โทรศัพท์', walkin: 'หน้าร้าน / อีเวนต์', other: 'ช่องทางอื่น' };
 
 const CARRIERS = ['ไปรษณีย์ไทย', 'นิ่มเอ็กซ์เพรส', 'Flash Express', 'Kerry Express', 'J&T Express'];
 
@@ -18,6 +20,7 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
   const [query, setQuery] = useState('');
   const [selId, setSelId] = useState(initialOrder && orders.some((o) => o.id === initialOrder) ? initialOrder : orders[0]?.id ?? '');
   const [carrier, setCarrier] = useState(CARRIERS[0]);
+  const [linkCopied, setLinkCopied] = useState('');
   const [trackNo, setTrackNo] = useState('');
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
@@ -48,10 +51,13 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
     <>
       <div className="admin-head">
         <h1>ออร์เดอร์</h1>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Link href="/admin/orders/new" className="btn btn--primary btn--square">+ สร้างออร์เดอร์</Link>
         <label className="admin__search">
           <SearchIcon style={{ color: 'var(--ink-2)' }} />
           <input type="search" aria-label="ค้นหาออร์เดอร์" placeholder="เลขออร์เดอร์ ชื่อ เบอร์โทร หรืออีเมล" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
+        </div>
       </div>
 
       <div role="tablist" aria-label="สถานะออร์เดอร์" className="admin__tabs">
@@ -99,7 +105,10 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
               <div>
                 <p className="num-display" style={{ fontWeight: 500, fontSize: 22 }}>{sel.id}</p>
-                <p className="small" style={{ marginTop: 2 }}>{thaiDateTime(sel.createdAt, true)}</p>
+                <p className="small" style={{ marginTop: 2 }}>
+                  {thaiDateTime(sel.createdAt, true)}
+                  {sel.source && sel.source !== 'web' && <> · <span className="tag tag--sky">สั่งทาง {SOURCE_LABEL[sel.source] ?? sel.source}</span></>}
+                </p>
               </div>
               <StatusPill status={sel.status} />
             </div>
@@ -112,6 +121,20 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
               {sel.customerId && (
                 <p style={{ marginTop: 6 }}><Link href={`/admin/customers/${sel.customerId}`}>ดูประวัติลูกค้า →</Link></p>
               )}
+              <p style={{ marginTop: 6 }}>
+                <button
+                  type="button"
+                  className="text-btn text-btn--link"
+                  style={{ fontSize: 14 }}
+                  onClick={async () => {
+                    const link = await orderLinkForAdmin(sel.id);
+                    if (!link) return;
+                    try { await navigator.clipboard.writeText(link); setLinkCopied(sel.id); setTimeout(() => setLinkCopied(''), 2000); } catch { window.prompt('ลิงก์หน้าออร์เดอร์ของลูกค้า', link); }
+                  }}
+                >
+                  {linkCopied === sel.id ? 'คัดลอกลิงก์แล้ว ✓' : 'คัดลอกลิงก์ชำระเงิน / แนบสลิป ส่งให้ลูกค้า'}
+                </button>
+              </p>
             </div>
 
             <ul className="admin__lines">

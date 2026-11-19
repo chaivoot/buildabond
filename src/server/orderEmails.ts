@@ -127,12 +127,13 @@ async function load(id: string) {
 }
 
 /** Customer: "we got your order, here's how to pay" · Shop: new order alert. */
-export const emailOrderPlaced = (id: string) => guarded('emailOrderPlaced', id, async () => {
+export const emailOrderPlaced = (id: string, opts: { notifyShop?: boolean } = {}) => guarded('emailOrderPlaced', id, async () => {
   const x = await load(id);
   if (!x) return;
   const { order: o, key, lang, settings: s } = x;
   const t = T[lang];
   const pay = `<p style="margin:18px 0 4px;font-weight:600">${t.placed.pay}</p><p style="margin:0">${esc(t.placed.bank(s.bank))}${s.promptpay ? `<br>${t.placed.promptpay}` : ''}</p>`;
+  const notifyShop = opts.notifyShop !== false;
   await Promise.all([
     sendEmail({
       to: o.email,
@@ -141,7 +142,7 @@ export const emailOrderPlaced = (id: string) => guarded('emailOrderPlaced', id, 
       html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.placed.lead}</p><p style="margin:0;color:#6b5d4f">${t.orderNo} <strong style="color:#2b2016">${o.id}</strong></p>${summary(o, t)}${pay}${button(orderLink(o, key), t.viewOrder)}`, t.footer),
       text: `${t.hello(o.name)}\n\n${t.placed.lead}\n\n${t.orderNo}: ${o.id}\n${textSummary(o, t)}\n\n${t.placed.pay}: ${t.placed.bank(s.bank)}\n${orderLink(o, key)}\n\n${t.footer}`,
     }),
-    sendEmail({
+    notifyShop && sendEmail({
       to: s.shopEmail,
       replyTo: o.email,
       subject: `ออร์เดอร์ใหม่ ${o.id} · ${money(o.total)} · ${o.name}`,

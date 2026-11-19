@@ -7,14 +7,23 @@ import { deleteDiscount, getDiscount, saveDiscount } from '../discounts';
 import type { DiscountCode } from '../../lib/types';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
-import { emailPaymentConfirmed, emailShipped } from '../orderEmails';
+import { emailOrderPlaced, emailPaymentConfirmed, emailShipped } from '../orderEmails';
+import { codeProblem, discountFor } from '../../lib/discount';
+import { redeemDiscount } from '../discounts';
+import { priceLine } from '../../lib/pricing';
+import { shippingFee } from '../../lib/shipping';
+import { formatPhone, isThaiPhone } from '../../lib/phone';
+import { SITE } from '../../data/site';
+import { customerIdByPhone, recordCustomer } from '../customers';
+import { listProducts } from '../products';
+import { getSettings } from '../settings';
 import { sendEmail } from '../email';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { th } from '../../i18n/th';
 import { checkPassword, createSessionToken, SESSION_COOKIE, SESSION_DAYS, verifySessionToken } from '../../lib/auth';
-import type { OrderStatus, Product, RequestStatus, ShopSettings } from '../../lib/types';
-import { setOrderStatus, shipOrder } from '../orders';
+import type { OrderItem, OrderStatus, Product, RequestStatus, ShopSettings } from '../../lib/types';
+import { createOrder, linkOrderToCustomer, orderAccessKey, setOrderStatus, shipOrder } from '../orders';
 import { deleteProduct, getProduct, upsertProduct } from '../products';
 import { setRequestStatus } from '../requests';
 import { saveSettings } from '../settings';
@@ -188,4 +197,130 @@ export async function updateSettings(s: ShopSettings): Promise<{ error?: string 
   refreshStore();
   revalidatePath('/admin/settings');
   return {};
+}
+
+/* ---------- Orders entered by the admin (LINE, Facebook, phone …) ---------- */
+
+export interface AdminOrderLine {
+  /** Catalogue product; omit for a custom line (name + price + kg). */
+  slug?: string;
+  size?: number;
+  color?: number;
+  magnets?: boolean;
+  qty: number;
+  /** Overrides the catalogue price for this line (deals, quotes). */
+  unitPrice?: number | null;
+  name?: string;
+  kg?: number;
+}
+
+export interface AdminOrderInput {
+  source: string;
+  name: string;
+  phone: string;
+  email: string;
+  street: string;
+  subdistrict: string;
+  district: string;
+  province: string;
+  postcode: string;
+  note: string;
+  lines: AdminOrderLine[];
+  discountCode: string;
+  /** Baht off when there's no code. */
+  manualDiscount: number;
+  /** null = shipping from the weight tiers */
+  shipping: number | null;
+  paid: boolean;
+  emailCustomer: boolean;
+}
+
+const ADMIN_SOURCES = ['line', 'facebook', 'instagram', 'phone', 'walkin', 'other'];
+
+export async function createAdminOrder(input: AdminOrderInput): Promise<{ id: string; link: string } | { error: string }> {
+  await requireAdmin();
+  const clean = (s: unknown, max = 300) => String(s ?? '').trim().slice(0, max);
+  const name = clean(input.name, 120);
+  const phoneRaw = clean(input.phone, 40);
+  const email = clean(input.email, 200).toLowerCase();
+  if (!name) return { error: 'กรอกชื่อลูกค้า' };
+  if (!phoneRaw) return { error: 'กรอกเบอร์โทรลูกค้า' };
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'อีเมลลูกค้าไม่ถูกต้อง' };
+  const phone = isThaiPhone(phoneRaw) ? formatPhone(phoneRaw) : phoneRaw;
+  const addr = {
+    name, street: clean(input.street), subdistrict: clean(input.subdistrict, 100), district: clean(input.district, 100),
+    province: clean(input.province, 100), postcode: clean(input.postcode, 10),
+  };
+  const address = [addr.street, addr.subdistrict, addr.district, addr.province, addr.postcode].filter(Boolean).join(' ');
+  const lines = Array.isArray(input.lines) ? input.lines.slice(0, 50) : [];
+  if (!lines.length) return { error: 'เพิ่มสินค้าอย่างน้อย 1 รายการ' };
+
+  const [products, settings] = await Promise.all([listProducts(), getSettings()]);
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const items: OrderItem[] = [];
+  for (const [i, l] of lines.entries()) {
+    const qty = Math.max(1, Math.min(999, Math.floor(Number(l.qty) || 1)));
+    const override = l.unitPrice === null || l.unitPrice === undefined || String(l.unitPrice) === '' ? null : Math.max(0, Math.round(Number(l.unitPrice)));
+    if (l.slug) {
+      const p = bySlug.get(l.slug);
+      // Admin orders may include hidden / pre-order products, so price them as if visible.
+      const priced = p ? priceLine({ slug: l.slug, qty, size: l.size, color: l.color, magnets: l.magnets ? 1 : 0 }, { ...p, visible: true, comingSoon: false, custom: false }, settings) : null;
+      if (!priced) return { error: `รายการที่ ${i + 1}: ไม่พบสินค้านี้` };
+      items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: override ?? priced.unitPrice, qty, kg: priced.kg });
+    } else {
+      const itemName = clean(l.name, 120);
+      if (!itemName) return { error: `รายการที่ ${i + 1}: กรอกชื่อรายการ` };
+      if (override === null) return { error: `รายการที่ ${i + 1}: กรอกราคา` };
+      items.push({ slug: 'custom-line', name: itemName, opt: '—', unitPrice: override, qty, kg: Math.max(0, Number(l.kg) || 0) });
+    }
+  }
+  const subtotal = items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
+  const kg = Math.round(items.reduce((a, i) => a + i.kg * i.qty, 0) * 10) / 10;
+  const shipping = input.shipping === null || input.shipping === undefined || String(input.shipping) === '' ? shippingFee(kg, settings.shipping) : Math.max(0, Math.round(Number(input.shipping)));
+
+  let discountCode = '';
+  let discount = 0;
+  const wanted = normalizeCode(clean(input.discountCode, 40));
+  if (wanted) {
+    const code = await getDiscount(wanted);
+    const problem = codeProblem(code, subtotal);
+    if (problem || !code) return { error: th.errors[problem ?? 'codeInvalid'] };
+    if (!(await redeemDiscount(code.code))) return { error: th.errors.codeUsedUp };
+    discountCode = code.code;
+    discount = discountFor(code, subtotal);
+  } else {
+    discount = Math.max(0, Math.min(subtotal, Math.round(Number(input.manualDiscount) || 0)));
+  }
+
+  const source = ADMIN_SOURCES.includes(input.source) ? input.source : 'other';
+  const { id, key } = await createOrder({
+    name, phone, email, address, note: clean(input.note, 500), customerId: null, items, subtotal, discountCode, discount, shipping,
+    total: subtotal - discount + shipping, kg, lang: 'th', source,
+  });
+  if (input.paid) await setOrderStatus(id, 'ยืนยันแล้ว');
+  try {
+    const customerId = email ? await recordCustomer(email, phone, addr, {}, id) : await customerIdByPhone(phone);
+    if (customerId) await linkOrderToCustomer(id, customerId);
+  } catch {
+    /* the order exists either way */
+  }
+  if (input.emailCustomer && email) after(() => (input.paid ? emailPaymentConfirmed(id) : emailOrderPlaced(id, { notifyShop: false })));
+  revalidatePath('/admin');
+  return { id, link: `${SITE.url}/order-placed?id=${encodeURIComponent(id)}&k=${key}` };
+}
+
+/** The customer's order-page link for an existing order (to send on LINE etc.). */
+export async function orderLinkForAdmin(id: string): Promise<string | null> {
+  await requireAdmin();
+  const key = await orderAccessKey(id);
+  return key ? `${SITE.url}/order-placed?id=${encodeURIComponent(id)}&k=${key}` : null;
+}
+
+/** Checks a code for the admin order form (no rate limit, uses the form's subtotal). */
+export async function checkDiscountCodeAdmin(raw: string, subtotal: number): Promise<{ ok: true; rule: { code: string; kind: 'percent' | 'amount'; value: number; minSubtotal: number } } | { ok: false; error: string }> {
+  await requireAdmin();
+  const code = await getDiscount(normalizeCode(String(raw ?? '')));
+  const problem = codeProblem(code, Math.max(0, Number(subtotal) || 0));
+  if (problem || !code) return { ok: false, error: th.errors[problem ?? 'codeInvalid'] };
+  return { ok: true, rule: { code: code.code, kind: code.kind, value: code.value, minSubtotal: code.minSubtotal } };
 }

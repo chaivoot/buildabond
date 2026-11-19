@@ -147,6 +147,21 @@
 .admin-email-log { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; }
 .admin-email-log li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0eadf; }
 
+/* ---------- New order ---------- */
+.admin-picker { position: absolute; z-index: 10; top: 100%; left: 0; right: 0; margin: 4px 0 0; padding: 4px; list-style: none; background: var(--white); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(43, 32, 22, 0.12); }
+.admin-picker button { width: 100%; text-align: left; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-size: 14px; font-weight: 400; }
+.admin-picker button:hover { background: var(--sand-2); }
+.admin-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.admin-lines li { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding-bottom: 12px; border-bottom: 1px solid var(--line-soft); }
+.admin-lines .field { font-size: 13px; }
+.admin-lines .input { height: 44px; }
+.admin-lines__product { flex: 1 1 220px; }
+.admin-lines__num { width: 110px; }
+.admin-lines__total { min-width: 90px; padding-bottom: 12px; text-align: right; font-weight: 600; margin-left: auto; }
+.admin-lines__note { flex-basis: 100%; color: #8a4b0f; }
+.admin-new-order__sum { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; font-size: 14px; }
+.admin-new-order__sum strong { font-size: 18px; }
+
 /* ---------- Phones ---------- */
 @media (max-width: 760px) {
   .admin__bar { padding: 8px 16px; gap: 8px; }
