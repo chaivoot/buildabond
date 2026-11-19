@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Fragment, useMemo, useState } from 'react';
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
+import { downloadCsv as download } from '../../lib/csv';
 import { commissionFor, commissionSummary, normalizeTiers, tierFor } from '../../lib/commission';
 import type { CodeOrder, DiscountCode, OrderStatus } from '../../lib/types';
 
@@ -42,22 +43,6 @@ interface Row {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
-
-function csvCell(v: string | number) {
-  const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-function download(name: string, rows: (string | number)[][]) {
-  // BOM so Excel opens Thai text correctly.
-  const blob = new Blob(['﻿' + rows.map((r) => r.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export function DiscountReport({ codes, orders }: { codes: DiscountCode[]; orders: CodeOrder[] }) {
   const [period, setPeriod] = useState<Period>('this');

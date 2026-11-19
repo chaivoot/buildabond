@@ -7,11 +7,43 @@ import { SearchIcon } from '../../components/Icons';
 import { ORDER_STATUSES, StatusPill, type OrderStatus } from '../../components/StatusPill';
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
+import { downloadCsv } from '../../lib/csv';
 import { formatPhone, normalizePhone, phoneSearchDigits } from '../../lib/phone';
 import type { Order } from '../../lib/types';
 import { markShipped, orderLinkForAdmin, updateOrderAffiliate, updateOrderStatus } from '../../server/actions/admin';
 
 const SOURCE_LABEL: Record<string, string> = { line: 'LINE', facebook: 'Facebook', instagram: 'Instagram', phone: 'โทรศัพท์', walkin: 'หน้าร้าน / อีเวนต์', other: 'ช่องทางอื่น' };
+
+const SOURCE_EXPORT: Record<string, string> = { web: 'เว็บไซต์', ...SOURCE_LABEL };
+
+/** YYYY-MM-DD and HH:MM in Bangkok, for spreadsheets. */
+const bkk = (iso: string | null) => {
+  if (!iso) return ['', ''];
+  const d = new Date(new Date(iso).getTime() + 7 * 3600_000).toISOString();
+  return [d.slice(0, 10), d.slice(11, 16)];
+};
+
+function exportOrders(orders: Order[], from: string, to: string, kind: 'orders' | 'items') {
+  const list = orders.filter((o) => { const d = bkk(o.createdAt)[0]; return (!from || d >= from) && (!to || d <= to); });
+  const name = `orders-${from || 'all'}-${to || 'all'}${kind === 'items' ? '-items' : ''}.csv`;
+  if (kind === 'items') {
+    downloadCsv(name, [
+      ['เลขออร์เดอร์', 'วันที่', 'สถานะ', 'ลูกค้า', 'เบอร์โทร', 'สินค้า', 'ตัวเลือก', 'จำนวน', 'ราคาต่อชิ้น', 'รวม', 'น้ำหนักต่อชิ้น (กก.)', 'โค้ด'],
+      ...list.flatMap((o) => o.items.map((i) => [o.id, bkk(o.createdAt)[0], o.status, o.name, o.phone, i.name, i.opt === '—' ? '' : i.opt, i.qty, i.unitPrice, i.unitPrice * i.qty, i.kg, o.discountCode])),
+    ]);
+    return;
+  }
+  downloadCsv(name, [
+    ['เลขออร์เดอร์', 'วันที่', 'เวลา', 'สถานะ', 'ช่องทาง', 'ลูกค้า', 'เบอร์โทร', 'อีเมล', 'ที่อยู่', 'รายการ', 'จำนวนชิ้น', 'ยอดสินค้า', 'โค้ด / Affiliate', 'ส่วนลด', 'ค่าส่ง', 'ยอดรวม', 'น้ำหนัก (กก.)',
+      'ส่งสลิป', 'ยืนยันชำระ', 'จัดส่ง', 'ขนส่ง', 'เลขพัสดุ', 'หมายเหตุ'],
+    ...list.map((o) => [
+      o.id, ...bkk(o.createdAt), o.status, SOURCE_EXPORT[o.source] ?? o.source, o.name, o.phone, o.email, o.address,
+      o.items.map((i) => `${i.name}${i.opt && i.opt !== '—' ? ` (${i.opt})` : ''} × ${i.qty}`).join('; '),
+      o.items.reduce((a, i) => a + i.qty, 0), o.subtotal, o.discountCode, o.discount, o.shipping, o.total, o.kg,
+      bkk(o.slipAt).join(' ').trim(), bkk(o.confirmedAt).join(' ').trim(), bkk(o.shippedAt).join(' ').trim(), o.carrier, o.tracking, o.note,
+    ]),
+  ]);
+}
 
 const CARRIERS = ['ไปรษณีย์ไทย', 'นิ่มเอ็กซ์เพรส', 'Flash Express', 'Kerry Express', 'J&T Express'];
 
@@ -22,6 +54,8 @@ export function OrdersAdmin({ orders, initialOrder, codes = [] }: { orders: Orde
   const [carrier, setCarrier] = useState(CARRIERS[0]);
   const [linkCopied, setLinkCopied] = useState('');
   const [trackNo, setTrackNo] = useState('');
+  const [exportFrom, setExportFrom] = useState('');
+  const [exportTo, setExportTo] = useState('');
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
 
@@ -70,6 +104,19 @@ export function OrdersAdmin({ orders, initialOrder, codes = [] }: { orders: Orde
           );
         })}
       </div>
+
+      <details className="admin-export">
+        <summary>ดาวน์โหลด CSV (เปิดใน Excel / Google Sheets)</summary>
+        <div className="admin-export__body">
+          <label>ตั้งแต่ <input className="input input--sm" type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} /></label>
+          <label>ถึง <input className="input input--sm" type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} /></label>
+          <button type="button" className="btn btn--ghost btn--sm" disabled={!visible.length} onClick={() => exportOrders(visible, exportFrom, exportTo, 'orders')}>รายออร์เดอร์</button>
+          <button type="button" className="btn btn--ghost btn--sm" disabled={!visible.length} onClick={() => exportOrders(visible, exportFrom, exportTo, 'items')}>รายสินค้า</button>
+          <p className="small" style={{ flexBasis: '100%' }}>
+            ใช้ตัวกรองสถานะและคำค้นหาด้านบนด้วย (ตอนนี้ {tab === 'all' ? 'ทุกสถานะ' : tab}{query ? ` · ค้นหา "${query}"` : ''}) · วันที่ว่างไว้ = ทั้งหมด
+          </p>
+        </div>
+      </details>
 
       <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
         <div className="admin__table-wrap">
