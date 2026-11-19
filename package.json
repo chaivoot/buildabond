@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
+    "@fontsource-variable/anuphan": "5.3.0",
+    "@fontsource/ibm-plex-sans-thai": "5.3.0",
     "@neondatabase/serverless": "^1.2.1",
     "@vercel/blob": "^2.9.0",
     "next": "15.5.29",

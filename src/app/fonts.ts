@@ -1,6 +1,13 @@
-import { Anuphan, IBM_Plex_Sans_Thai } from 'next/font/google';
+/**
+ * Fonts are bundled from npm (Fontsource) instead of next/font/google, so builds never depend on
+ * Google Fonts being reachable. Each file declares unicode ranges, so browsers only download the
+ * Thai / Latin parts a page uses.
+ */
+import '@fontsource-variable/anuphan';
+import '@fontsource/ibm-plex-sans-thai/400.css';
+import '@fontsource/ibm-plex-sans-thai/500.css';
+import '@fontsource/ibm-plex-sans-thai/600.css';
+import './fonts.css';
 
-const anuphan = Anuphan({ subsets: ['thai', 'latin'], weight: ['200', '300', '400', '500', '600'], variable: '--font-anuphan', display: 'swap' });
-const plexThai = IBM_Plex_Sans_Thai({ subsets: ['thai', 'latin'], weight: ['400', '500', '600'], variable: '--font-plex-thai', display: 'swap' });
-
-export const fontVariables = `${anuphan.variable} ${plexThai.variable}`;
+/** Class on <html> that sets --font-anuphan and --font-plex-thai (see global.css). */
+export const fontVariables = 'bb-fonts';
