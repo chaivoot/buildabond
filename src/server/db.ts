@@ -139,6 +139,14 @@ const SCHEMA = [
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code text NOT NULL DEFAULT ''`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount integer NOT NULL DEFAULT 0`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS lang text NOT NULL DEFAULT 'th'`,
+  `CREATE TABLE IF NOT EXISTS email_log (
+    id serial PRIMARY KEY,
+    at timestamptz NOT NULL DEFAULT now(),
+    to_addr text NOT NULL DEFAULT '',
+    subject text NOT NULL DEFAULT '',
+    status text NOT NULL,
+    detail text NOT NULL DEFAULT ''
+  )`,
   `ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS affiliate text NOT NULL DEFAULT ''`,
   `ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS commission_percent real NOT NULL DEFAULT 0`,
   `ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS commission_tiers jsonb NOT NULL DEFAULT '[]'`,

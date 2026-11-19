@@ -142,6 +142,11 @@
 .admin-tiers__remove:hover { background: var(--sand); }
 .admin-commission__try { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--sand-2); font-size: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 
+/* ---------- Email test / log ---------- */
+.admin-email-test { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.admin-email-log { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.admin-email-log li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0eadf; }
+
 /* ---------- Phones ---------- */
 @media (max-width: 760px) {
   .admin__bar { padding: 8px 16px; gap: 8px; }
