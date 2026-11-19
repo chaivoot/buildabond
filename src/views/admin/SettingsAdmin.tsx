@@ -4,13 +4,18 @@ import { useState, useTransition } from 'react';
 import { promptPayPayload } from '../../lib/promptpay';
 import { tierRange } from '../../lib/shipping';
 import type { ShopSettings } from '../../lib/types';
-import { updateSettings } from '../../server/actions/admin';
+import { sendTestEmail, updateSettings } from '../../server/actions/admin';
+import type { EmailLogRow } from '../../server/email';
+import { thaiDateTime } from '../../lib/dates';
 
-export function SettingsAdmin({ settings, emailOn }: { settings: ShopSettings; emailOn: boolean }) {
+export function SettingsAdmin({ settings, emailOn, emailLog }: { settings: ShopSettings; emailOn: boolean; emailLog: EmailLogRow[] }) {
   const [s, setS] = useState(settings);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [testTo, setTestTo] = useState(settings.shopEmail);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testing, setTesting] = useState(false);
   const [pending, start] = useTransition();
 
   const patch = (p: Partial<ShopSettings>) => { setS((x) => ({ ...x, ...p })); setSaved(false); setDirty(true); };
@@ -46,6 +51,52 @@ export function SettingsAdmin({ settings, emailOn }: { settings: ShopSettings; e
               <input className="input" type="email" value={s.shopEmail} onChange={(e) => patch({ shopEmail: e.target.value.trim() })} placeholder="shop@example.com" />
             </label>
           </div>
+
+          <div className="admin-email-test">
+            <label className="field" style={{ flex: '1 1 260px' }}>
+              ส่งอีเมลทดสอบไปที่
+              <input className="input" type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} />
+            </label>
+            <button
+              type="button"
+              className="btn btn--ghost btn--square"
+              disabled={testing || !testTo}
+              onClick={async () => {
+                setTesting(true);
+                setTestResult(null);
+                setTestResult(await sendTestEmail(testTo).catch((e: Error) => ({ ok: false, message: e.message })));
+                setTesting(false);
+              }}
+            >
+              {testing ? 'กำลังส่ง…' : 'ส่งอีเมลทดสอบ'}
+            </button>
+          </div>
+          {testResult && (
+            <p role="status" className={`admin-note ${testResult.ok ? 'admin-note--ok' : 'admin-note--warn'}`} style={{ marginTop: 10, overflowWrap: 'anywhere' }}>
+              {testResult.ok ? '✓ ' : '✕ ส่งไม่สำเร็จ: '}{testResult.message}
+            </p>
+          )}
+
+          <details style={{ marginTop: 16 }} open={emailLog.some((r) => r.status !== 'sent')}>
+            <summary className="strong" style={{ fontSize: 14, cursor: 'pointer' }}>ประวัติการส่งอีเมลล่าสุด ({emailLog.length})</summary>
+            {emailLog.length === 0 ? (
+              <p className="small" style={{ marginTop: 8 }}>ยังไม่มีการส่งอีเมล</p>
+            ) : (
+              <ul className="admin-email-log">
+                {emailLog.map((r, i) => (
+                  <li key={i}>
+                    <span className={`tag ${r.status === 'sent' ? 'tag--green' : r.status === 'failed' ? 'tag--orange' : 'tag--sand'}`}>
+                      {r.status === 'sent' ? 'ส่งแล้ว' : r.status === 'failed' ? 'ไม่สำเร็จ' : 'ข้าม'}
+                    </span>
+                    <span className="small">{thaiDateTime(r.at)}</span>
+                    <span>{r.to || '—'}</span>
+                    <span className="small" style={{ flexBasis: '100%' }}>{r.subject}</span>
+                    {r.status !== 'sent' && r.detail && <span className="small" style={{ flexBasis: '100%', color: '#8e1f0b', overflowWrap: 'anywhere' }}>{r.detail}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </details>
         </section>
 
         <section className="admin-card">

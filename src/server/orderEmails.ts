@@ -5,7 +5,7 @@
  */
 import { SITE } from '../data/site';
 import type { Order, ShopSettings } from '../lib/types';
-import { sendEmail } from './email';
+import { logEmail, sendEmail } from './email';
 import { getOrderForEmail } from './orders';
 import { getSettings } from './settings';
 
@@ -111,13 +111,23 @@ const textSummary = (o: Order, t: (typeof T)[Lang]) =>
     `${t.total}: ${money(o.total)}`,
   ].filter(Boolean).join('\n');
 
+/** Runs one order email job; anything unexpected is written to the email log instead of vanishing. */
+async function guarded(job: string, id: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (e) {
+    console.error('[email]', job, id, e);
+    await logEmail('', `${job} ${id}`, 'failed', e instanceof Error ? e.message : String(e));
+  }
+}
+
 async function load(id: string) {
   const [info, settings] = await Promise.all([getOrderForEmail(id), getSettings()]);
   return info ? { ...info, settings } : null;
 }
 
 /** Customer: "we got your order, here's how to pay" · Shop: new order alert. */
-export async function emailOrderPlaced(id: string) {
+export const emailOrderPlaced = (id: string) => guarded('emailOrderPlaced', id, async () => {
   const x = await load(id);
   if (!x) return;
   const { order: o, key, lang, settings: s } = x;
@@ -139,10 +149,10 @@ export async function emailOrderPlaced(id: string) {
       text: `ออร์เดอร์ใหม่ ${o.id}\n${o.name} · ${o.phone} · ${o.email}\n${o.address}\n${textSummary(o, T.th)}\n${adminLink(o)}`,
     }),
   ]);
-}
+});
 
 /** Shop: the customer uploaded a slip to check. */
-export async function emailSlipUploaded(id: string) {
+export const emailSlipUploaded = (id: string) => guarded('emailSlipUploaded', id, async () => {
   const x = await load(id);
   if (!x) return;
   const { order: o, settings: s } = x;
@@ -153,10 +163,10 @@ export async function emailSlipUploaded(id: string) {
     html: layout(`<p style="margin:0">${esc(o.name)} อัปโหลดสลิปของออร์เดอร์ <strong>${o.id}</strong> ยอด ${money(o.total)} แล้ว ตรวจยอดแล้วกดยืนยันในหลังบ้านได้เลย</p>${o.slipUrl && !o.slipUrl.startsWith('data:') ? `<p><a href="${esc(o.slipUrl)}">ดูรูปสลิป</a></p>` : ''}${button(adminLink(o), 'ตรวจสลิปในหลังบ้าน')}`, 'อีเมลแจ้งเตือนจากเว็บ build-a-bond.com'),
     text: `${o.name} อัปโหลดสลิปของออร์เดอร์ ${o.id} ยอด ${money(o.total)}\n${adminLink(o)}`,
   });
-}
+});
 
 /** Customer: payment confirmed by the shop. */
-export async function emailPaymentConfirmed(id: string) {
+export const emailPaymentConfirmed = (id: string) => guarded('emailPaymentConfirmed', id, async () => {
   const x = await load(id);
   if (!x) return;
   const { order: o, key, lang, settings: s } = x;
@@ -168,10 +178,10 @@ export async function emailPaymentConfirmed(id: string) {
     html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.confirmed.lead}</p><p style="margin:0;color:#6b5d4f">${t.orderNo} <strong style="color:#2b2016">${o.id}</strong></p>${summary(o, t)}${button(orderLink(o, key), t.viewOrderPaid)}`, t.footer),
     text: `${t.hello(o.name)}\n\n${t.confirmed.lead}\n\n${t.orderNo}: ${o.id}\n${textSummary(o, t)}\n${orderLink(o, key)}\n\n${t.footer}`,
   });
-}
+});
 
 /** Customer: shipped, with carrier and tracking number. */
-export async function emailShipped(id: string) {
+export const emailShipped = (id: string) => guarded('emailShipped', id, async () => {
   const x = await load(id);
   if (!x) return;
   const { order: o, lang, settings: s } = x;
@@ -184,4 +194,4 @@ export async function emailShipped(id: string) {
     html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.shipped.lead}</p><p style="margin:0">${t.orderNo} <strong>${o.id}</strong><br>${t.shipped.carrier}: ${esc(o.carrier)}<br>${t.shipped.tracking}: <strong style="font-size:17px;letter-spacing:.04em">${esc(o.tracking)}</strong></p>${button(trackUrl, t.track)}`, t.footer),
     text: `${t.hello(o.name)}\n\n${t.shipped.lead}\n${t.orderNo}: ${o.id}\n${t.shipped.carrier}: ${o.carrier}\n${t.shipped.tracking}: ${o.tracking}\n${trackUrl}\n\n${t.footer}`,
   });
-}
+});

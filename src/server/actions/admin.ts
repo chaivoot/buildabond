@@ -8,6 +8,7 @@ import type { DiscountCode } from '../../lib/types';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { emailPaymentConfirmed, emailShipped } from '../orderEmails';
+import { sendEmail } from '../email';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { th } from '../../i18n/th';
@@ -151,6 +152,25 @@ export async function removeDiscountCode(code: string) {
   await requireAdmin();
   await deleteDiscount(code);
   revalidatePath('/admin/discounts');
+}
+
+/* ---------- Email test ---------- */
+
+/** Sends a test email now (not in the background) and returns Resend's answer, for checking the setup. */
+export async function sendTestEmail(to: string): Promise<{ ok: boolean; message: string }> {
+  await requireAdmin();
+  const addr = String(to ?? '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) return { ok: false, message: 'อีเมลไม่ถูกต้อง' };
+  const res = await sendEmail({
+    to: addr,
+    subject: 'ทดสอบอีเมลจาก Buildabond',
+    text: 'ถ้าได้รับอีเมลนี้ แปลว่าระบบส่งอีเมลของเว็บ build-a-bond.com ใช้งานได้แล้ว',
+    html: '<p>ถ้าได้รับอีเมลนี้ แปลว่าระบบส่งอีเมลของเว็บ <strong>build-a-bond.com</strong> ใช้งานได้แล้ว</p>',
+  });
+  revalidatePath('/admin/settings');
+  return res.ok
+    ? { ok: true, message: `ส่งแล้ว (Resend id ${res.id}) ลองเช็กกล่องจดหมาย และโฟลเดอร์สแปม/Promotions` }
+    : { ok: false, message: res.error };
 }
 
 /* ---------- Settings ---------- */
