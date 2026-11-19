@@ -1,6 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
+import { emailOrderPlaced, emailSlipUploaded } from '../orderEmails';
 import { headers } from 'next/headers';
 import { priceLine, type CartLineInput } from '../../lib/pricing';
 import { shippingFee } from '../../lib/shipping';
@@ -32,6 +34,8 @@ export interface CheckoutInput {
   oldEmail?: string;
   /** Discount code the customer applied, if any; checked again here. */
   discountCode?: string;
+  /** Site language at checkout; the customer's emails use it. */
+  lang?: 'th' | 'en';
 }
 
 /** Errors are codes; the browser shows them in the visitor's language (dictionary: errors). */
@@ -90,7 +94,7 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
   const old = { phone: clean(input.oldPhone, 40) || undefined, email: clean(input.oldEmail, 200) || undefined };
   let placed: { id: string; key: string };
   try {
-    placed = await createOrder({ name, phone, email, address, note: clean(input.note), customerId: null, items, subtotal, discountCode, discount, shipping, total: subtotal - discount + shipping, kg });
+    placed = await createOrder({ name, phone, email, address, note: clean(input.note), customerId: null, items, subtotal, discountCode, discount, shipping, total: subtotal - discount + shipping, kg, lang: input.lang === 'en' ? 'en' : 'th' });
   } catch (e) {
     if (discountCode) await releaseDiscount(discountCode).catch(() => {});
     throw e;
@@ -104,6 +108,8 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
     /* the order is placed either way */
   }
   revalidatePath('/admin');
+  // Confirmation to the customer and an alert to the shop, after the response is sent.
+  after(() => emailOrderPlaced(id));
   return { ok: true, id, key };
 }
 
@@ -135,6 +141,7 @@ export async function uploadSlip(id: string, key: string, form: FormData): Promi
     const url = await storeImage(form.get('file') as File, 'slips');
     await attachSlip(id, url);
     revalidatePath('/admin');
+    after(() => emailSlipUploaded(id));
     return { ok: true, url };
   } catch (e) {
     return { ok: false, error: e instanceof Error && isErrorCode(e.message) ? e.message : 'uploadFailed' };

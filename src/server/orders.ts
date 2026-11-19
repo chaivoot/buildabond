@@ -48,6 +48,8 @@ export async function findOrderByContact(id: string, contact: string): Promise<O
 
 export interface NewOrder {
   name: string; phone: string; email: string; address: string; note: string; customerId: string | null; items: OrderItem[]; subtotal: number; discountCode: string; discount: number; shipping: number; total: number; kg: number;
+  /** Language the customer ordered in; their emails use it. */
+  lang: 'th' | 'en';
 }
 
 export async function createOrder(o: NewOrder): Promise<{ id: string; key: string }> {
@@ -57,11 +59,18 @@ export async function createOrder(o: NewOrder): Promise<{ id: string; key: strin
   const id = `BB-${ymd}-${String(n).padStart(4, '0')}`;
   const key = crypto.randomUUID().replace(/-/g, '').slice(0, 20);
   await sql(
-    `INSERT INTO orders (id, access_key, name, phone, email, address, note, items, subtotal, shipping, total, kg, status, customer_id, discount_code, discount)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'รอชำระ',$13,$14,$15)`,
-    [id, key, o.name, o.phone, o.email, o.address, o.note, toJson(o.items), o.subtotal, o.shipping, o.total, o.kg, o.customerId, o.discountCode, o.discount],
+    `INSERT INTO orders (id, access_key, name, phone, email, address, note, items, subtotal, shipping, total, kg, status, customer_id, discount_code, discount, lang)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'รอชำระ',$13,$14,$15,$16)`,
+    [id, key, o.name, o.phone, o.email, o.address, o.note, toJson(o.items), o.subtotal, o.shipping, o.total, o.kg, o.customerId, o.discountCode, o.discount, o.lang],
   );
   return { id, key };
+}
+
+/** An order plus what its emails need: the private link key and the customer's language. */
+export async function getOrderForEmail(id: string): Promise<{ order: Order; key: string; lang: 'th' | 'en' } | null> {
+  const rows = await sql<Row & { lang: string | null }>(`SELECT * FROM orders WHERE id = $1`, [id]);
+  const r = rows[0];
+  return r ? { order: fromRow(r), key: r.access_key, lang: r.lang === 'en' ? 'en' : 'th' } : null;
 }
 
 export async function linkOrderToCustomer(orderId: string, customerId: string): Promise<void> {

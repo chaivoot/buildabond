@@ -148,6 +148,7 @@ export function CheckoutPage() {
         oldEmail: lookup.s === 'verifiedEmail' ? lookup.oldEmail : undefined,
         lines: cartLines(),
         discountCode: rule?.code,
+        lang,
       });
       if (!res.ok) {
         setError(t.errors[res.error]);

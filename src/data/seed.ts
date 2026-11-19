@@ -165,6 +165,7 @@ export const SEED_SETTINGS: ShopSettings = {
   bank: { name: 'ธนาคารกรุงไทย (KTB)', nameEn: 'Krungthai Bank (KTB)', number: '539-1-36496-5', holder: 'Mrs. Natigarn Suwannapet' },
   promptpay: '',
   magnetPrice: 100,
+  shopEmail: 'build.a.bond.2025@gmail.com',
   maxMagnets: 6,
   shipping: [
     { upToKg: 1, fee: 50 },
