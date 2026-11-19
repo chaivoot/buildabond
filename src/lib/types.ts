@@ -103,6 +103,8 @@ export interface ShopSettings {
   /** PromptPay phone or national ID; empty hides the QR. */
   promptpay: string;
   magnetPrice: number;
+  /** Shop inbox: gets new-order and slip alerts, and customers' replies to order emails. */
+  shopEmail: string;
   /** @deprecated magnets are now a fixed count per product (Product.magnetCount). */
   maxMagnets: number;
   shipping: ShippingTier[];

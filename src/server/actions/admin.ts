@@ -6,6 +6,8 @@ import { normalizeTiers } from '../../lib/commission';
 import { deleteDiscount, getDiscount, saveDiscount } from '../discounts';
 import type { DiscountCode } from '../../lib/types';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
+import { emailPaymentConfirmed, emailShipped } from '../orderEmails';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { th } from '../../i18n/th';
@@ -45,6 +47,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   await requireAdmin();
   await setOrderStatus(id, status);
   revalidatePath('/admin');
+  if (status === 'ยืนยันแล้ว') after(() => emailPaymentConfirmed(id));
 }
 
 export async function markShipped(id: string, carrier: string, tracking: string) {
@@ -52,6 +55,7 @@ export async function markShipped(id: string, carrier: string, tracking: string)
   if (!tracking.trim()) throw new Error('กรอกเลขพัสดุ');
   await shipOrder(id, carrier.trim(), tracking.trim().toUpperCase());
   revalidatePath('/admin');
+  after(() => emailShipped(id));
 }
 
 /* ---------- Products ---------- */
@@ -158,7 +162,9 @@ export async function updateSettings(s: ShopSettings): Promise<{ error?: string 
     const t = tiers[i].upToKg;
     if (t === null || t <= 0 || (i > 0 && t <= (tiers[i - 1].upToKg ?? 0))) return { error: 'น้ำหนักของแต่ละช่วงค่าส่งต้องเรียงจากน้อยไปมาก' };
   }
-  await saveSettings({ ...s, shipping: tiers.map((t, i) => ({ ...t, upToKg: i === tiers.length - 1 ? null : t.upToKg })) });
+  const shopEmail = String(s.shopEmail ?? '').trim();
+  if (shopEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shopEmail)) return { error: 'อีเมลร้านไม่ถูกต้อง' };
+  await saveSettings({ ...s, shopEmail, shipping: tiers.map((t, i) => ({ ...t, upToKg: i === tiers.length - 1 ? null : t.upToKg })) });
   refreshStore();
   revalidatePath('/admin/settings');
   return {};

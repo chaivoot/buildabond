@@ -6,7 +6,7 @@ import { tierRange } from '../../lib/shipping';
 import type { ShopSettings } from '../../lib/types';
 import { updateSettings } from '../../server/actions/admin';
 
-export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
+export function SettingsAdmin({ settings, emailOn }: { settings: ShopSettings; emailOn: boolean }) {
   const [s, setS] = useState(settings);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -32,6 +32,22 @@ export function SettingsAdmin({ settings }: { settings: ShopSettings }) {
     <>
       <div className="admin-head"><h1>ตั้งค่าร้าน</h1></div>
       <div className="stack" style={{ marginTop: 18, gap: 18, maxWidth: 860 }}>
+        <section className="admin-card">
+          <h2>อีเมล</h2>
+          <p className={`admin-note ${emailOn ? 'admin-note--ok' : 'admin-note--warn'}`} style={{ marginBottom: 14 }}>
+            {emailOn
+              ? 'เชื่อม Resend แล้ว: ระบบส่งอีเมลยืนยันให้ลูกค้า (ได้รับคำสั่งซื้อ · ยืนยันการชำระ · จัดส่งแล้ว) และแจ้งเตือนร้าน (ออร์เดอร์ใหม่ · ลูกค้าส่งสลิป) อัตโนมัติ'
+              : 'ยังไม่ได้เชื่อม Resend: ยังไม่ส่งอีเมล ใส่ RESEND_API_KEY ใน Vercel → Settings → Environment Variables แล้ว Redeploy'}
+          </p>
+          <div className="admin-grid">
+            <label className="field">
+              อีเมลร้าน
+              <span className="field__hint">รับแจ้งเตือนออร์เดอร์ใหม่และสลิป และเป็นอีเมลที่ลูกค้ากดตอบกลับถึง</span>
+              <input className="input" type="email" value={s.shopEmail} onChange={(e) => patch({ shopEmail: e.target.value.trim() })} placeholder="shop@example.com" />
+            </label>
+          </div>
+        </section>
+
         <section className="admin-card">
           <h2>การรับเงิน</h2>
           <div className="admin-grid">
