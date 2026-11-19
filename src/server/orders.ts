@@ -94,6 +94,11 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
   await sql(`UPDATE orders SET status = $2${stamp} WHERE id = $1`, [id, status]);
 }
 
+/** Credits an order to a code's affiliate (or clears it). The discount amount already given doesn't change. */
+export async function setOrderCode(id: string, code: string): Promise<void> {
+  await sql(`UPDATE orders SET discount_code = $2 WHERE id = $1`, [id, code]);
+}
+
 export async function shipOrder(id: string, carrier: string, tracking: string): Promise<void> {
   await sql(`UPDATE orders SET status = 'จัดส่งแล้ว', carrier = $2, tracking = $3, shipped_at = now() WHERE id = $1`, [id, carrier, tracking]);
 }

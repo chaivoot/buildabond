@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { baht } from '../../data/format';
-import { discountFor } from '../../lib/discount';
+import { codeProblem, discountFor, discountLabel } from '../../lib/discount';
 import { formatPhone, phoneSearchDigits } from '../../lib/phone';
 import { priceLine } from '../../lib/pricing';
 import { provinceOptions } from '../../lib/provinces';
 import { shippingFee } from '../../lib/shipping';
-import type { Product, ShopSettings } from '../../lib/types';
-import { checkDiscountCodeAdmin, createAdminOrder, type AdminOrderLine } from '../../server/actions/admin';
+import { th } from '../../i18n/th';
+import type { DiscountCode, Product, ShopSettings } from '../../lib/types';
+import { createAdminOrder, type AdminOrderLine } from '../../server/actions/admin';
 
 interface PickCustomer {
   id: string; name: string; phone: string; email: string; street: string; subdistrict: string; district: string; province: string; postcode: string;
@@ -30,16 +31,16 @@ const newLine = (slug?: string): Line => ({ key: nextKey++, slug, qty: 1, size: 
 
 const EMPTY = { name: '', phone: '', email: '', street: '', subdistrict: '', district: '', province: '', postcode: '', note: '' };
 
-export function NewOrderAdmin({ products, customers, settings }: { products: Product[]; customers: PickCustomer[]; settings: ShopSettings }) {
+export function NewOrderAdmin({ products, customers, settings, codes }: { products: Product[]; customers: PickCustomer[]; settings: ShopSettings; codes: DiscountCode[] }) {
   const sellable = products.filter((p) => p.price > 0 || (p.detail.sizes?.length ?? 0) > 0);
   const bySlug = useMemo(() => new Map(products.map((p) => [p.slug, p])), [products]);
   const [source, setSource] = useState('line');
   const [c, setC] = useState(EMPTY);
   const [query, setQuery] = useState('');
   const [lines, setLines] = useState<Line[]>([newLine(sellable[0]?.slug)]);
+  // Affiliate / code: credits the order to the code's affiliate; the customer gets the code's discount only if ticked.
   const [code, setCode] = useState('');
-  const [codeRule, setCodeRule] = useState<Parameters<typeof discountFor>[0] | null>(null);
-  const [codeMsg, setCodeMsg] = useState('');
+  const [giveCodeDiscount, setGiveCodeDiscount] = useState(true);
   const [manualDiscount, setManualDiscount] = useState(0);
   const [shippingOverride, setShippingOverride] = useState<string>('');
   const [paid, setPaid] = useState(false);
@@ -73,15 +74,11 @@ export function NewOrderAdmin({ products, customers, settings }: { products: Pro
   const kg = Math.round(lines.reduce((a, l) => a + linePrice(l).kg * (Number(l.qty) || 1), 0) * 10) / 10;
   const autoShipping = shippingFee(kg, settings.shipping);
   const shipping = shippingOverride === '' ? autoShipping : Math.max(0, Number(shippingOverride) || 0);
+  const chosen = codes.find((x) => x.code === code) ?? null;
+  const codeIssue = chosen && giveCodeDiscount ? codeProblem(chosen, subtotal) : null;
+  const codeRule = chosen && giveCodeDiscount && !codeIssue ? chosen : null;
   const discount = codeRule ? discountFor(codeRule, subtotal) : Math.max(0, Math.min(subtotal, manualDiscount || 0));
   const total = subtotal - discount + shipping;
-
-  const applyCode = async () => {
-    setCodeMsg('');
-    const res = await checkDiscountCodeAdmin(code, subtotal);
-    if (res.ok) { setCodeRule(res.rule); setCodeMsg(''); }
-    else { setCodeRule(null); setCodeMsg(res.error); }
-  };
 
   const submit = () => {
     setError('');
@@ -89,7 +86,8 @@ export function NewOrderAdmin({ products, customers, settings }: { products: Pro
       const res = await createAdminOrder({
         source, ...c,
         lines: lines.map(({ key: _k, ...l }) => l),
-        discountCode: codeRule?.code ?? '',
+        discountCode: chosen?.code ?? '',
+        applyCodeDiscount: giveCodeDiscount,
         manualDiscount: codeRule ? 0 : manualDiscount,
         shipping: shippingOverride === '' ? null : Number(shippingOverride),
         paid,
@@ -139,7 +137,7 @@ export function NewOrderAdmin({ products, customers, settings }: { products: Pro
           <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" className="btn btn--ghost btn--square" onClick={() => copy(message, 'msg')}>{copied === 'msg' ? 'คัดลอกแล้ว ✓' : 'คัดลอกข้อความ'}</button>
             <Link className="btn btn--ghost btn--square" href={`/admin?order=${encodeURIComponent(done.id)}`}>เปิดออร์เดอร์ในหลังบ้าน</Link>
-            <button type="button" className="btn btn--ghost btn--square" onClick={() => { setDone(null); setC(EMPTY); setLines([newLine(sellable[0]?.slug)]); setCodeRule(null); setCode(''); setManualDiscount(0); setShippingOverride(''); setPaid(false); }}>สร้างออร์เดอร์ใหม่</button>
+            <button type="button" className="btn btn--ghost btn--square" onClick={() => { setDone(null); setC(EMPTY); setLines([newLine(sellable[0]?.slug)]); setCode(''); setGiveCodeDiscount(true); setManualDiscount(0); setShippingOverride(''); setPaid(false); }}>สร้างออร์เดอร์ใหม่</button>
           </div>
         </section>
       </>
@@ -258,20 +256,25 @@ export function NewOrderAdmin({ products, customers, settings }: { products: Pro
         <section className="admin-card">
           <h2>ส่วนลด ค่าส่ง และการชำระเงิน</h2>
           <div className="admin-grid">
-            <div className="field">โค้ดส่วนลด
-              <span className="field__hint">นับเข้ารายงาน affiliate ด้วย</span>
-              {codeRule ? (
-                <p className="checkout-code__applied" style={{ margin: 0 }}><span>{codeRule.code} · ลด {baht(discount)}</span><button type="button" className="text-btn text-btn--link" onClick={() => setCodeRule(null)}>เอาออก</button></p>
-              ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="input" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="เช่น MOMMAM" style={{ flex: 1, minWidth: 0 }} />
-                  <button type="button" className="btn btn--ghost btn--square" disabled={!code.trim()} onClick={applyCode}>ใช้</button>
-                </div>
+            <div className="field">Affiliate / โค้ด
+              <span className="field__hint">ออร์เดอร์นี้นับเข้ารายงานค่าคอมของคนนี้</span>
+              <select className="input" value={code} onChange={(e) => setCode(e.target.value)}>
+                <option value="">— ไม่มี —</option>
+                {codes.map((x) => (
+                  <option key={x.code} value={x.code}>{x.code}{x.affiliate ? ` · ${x.affiliate}` : ''} · ลด {discountLabel(x)}{x.active ? '' : ' (ปิดอยู่)'}</option>
+                ))}
+              </select>
+              {chosen && (
+                <label className="admin-check" style={{ minHeight: 36 }}>
+                  <input type="checkbox" checked={giveCodeDiscount} onChange={(e) => setGiveCodeDiscount(e.target.checked)} />
+                  ให้ส่วนลดของโค้ดนี้กับลูกค้า ({discountLabel(chosen)})
+                </label>
               )}
-              {codeMsg && <span className="small" role="alert" style={{ color: '#8e1f0b' }}>{codeMsg}</span>}
+              {codeIssue && <span className="small" role="alert" style={{ color: '#8e1f0b' }}>{th.errors[codeIssue]} · เอาเครื่องหมายออกเพื่อนับเป็นยอด affiliate อย่างเดียว</span>}
+              {codeRule && <span className="small" style={{ color: '#1d6b2a' }}>ลด {baht(discount)}</span>}
             </div>
             {!codeRule && (
-              <label className="field">ส่วนลดเพิ่มเอง (บาท)<span className="field__hint">ถ้าไม่ได้ใช้โค้ด</span>
+              <label className="field">ส่วนลดเพิ่มเอง (บาท)<span className="field__hint">{chosen ? 'ใช้แทนส่วนลดของโค้ด ว่างไว้ = ไม่ลด' : 'ถ้าไม่ได้ใช้โค้ด'}</span>
                 <input className="input" type="number" min={0} value={manualDiscount || ''} onChange={(e) => setManualDiscount(Number(e.target.value) || 0)} placeholder="0" />
               </label>
             )}

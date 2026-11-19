@@ -148,6 +148,8 @@
 .admin-email-log li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0eadf; }
 
 /* ---------- New order ---------- */
+.admin-affiliate label { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; }
+.admin-affiliate select { max-width: 60%; height: 36px; font-size: 13px; }
 .admin-picker { position: absolute; z-index: 10; top: 100%; left: 0; right: 0; margin: 4px 0 0; padding: 4px; list-style: none; background: var(--white); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(43, 32, 22, 0.12); }
 .admin-picker button { width: 100%; text-align: left; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-size: 14px; font-weight: 400; }
 .admin-picker button:hover { background: var(--sand-2); }
