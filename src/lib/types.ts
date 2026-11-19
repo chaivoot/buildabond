@@ -145,6 +145,8 @@ export interface Order {
   shippedAt: string | null;
   carrier: string;
   tracking: string;
+  /** Where the order came from: 'web' (checkout) or the channel an admin entered it for (line, facebook, …). */
+  source: string;
   /** Linked customer (see /admin/customers); null for guest orders that couldn't be linked. */
   customerId: string | null;
 }
