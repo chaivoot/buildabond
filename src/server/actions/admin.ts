@@ -23,7 +23,7 @@ import { redirect } from 'next/navigation';
 import { th } from '../../i18n/th';
 import { checkPassword, createSessionToken, SESSION_COOKIE, SESSION_DAYS, verifySessionToken } from '../../lib/auth';
 import type { OrderItem, OrderStatus, Product, RequestStatus, ShopSettings } from '../../lib/types';
-import { createOrder, linkOrderToCustomer, orderAccessKey, setOrderStatus, shipOrder } from '../orders';
+import { createOrder, linkOrderToCustomer, orderAccessKey, setOrderCode, setOrderStatus, shipOrder } from '../orders';
 import { deleteProduct, getProduct, upsertProduct } from '../products';
 import { setRequestStatus } from '../requests';
 import { saveSettings } from '../settings';
@@ -227,7 +227,9 @@ export interface AdminOrderInput {
   note: string;
   lines: AdminOrderLine[];
   discountCode: string;
-  /** Baht off when there's no code. */
+  /** false: the code only credits its affiliate; the customer doesn't get its discount. */
+  applyCodeDiscount?: boolean;
+  /** Baht off when the code's discount isn't used. */
   manualDiscount: number;
   /** null = shipping from the weight tiers */
   shipping: number | null;
@@ -281,7 +283,13 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ id: st
   let discountCode = '';
   let discount = 0;
   const wanted = normalizeCode(clean(input.discountCode, 40));
-  if (wanted) {
+  if (wanted && input.applyCodeDiscount === false) {
+    // Affiliate credit only: any existing code, no discount from it, no use counted.
+    const code = await getDiscount(wanted);
+    if (!code) return { error: th.errors.codeInvalid };
+    discountCode = code.code;
+    discount = Math.max(0, Math.min(subtotal, Math.round(Number(input.manualDiscount) || 0)));
+  } else if (wanted) {
     const code = await getDiscount(wanted);
     const problem = codeProblem(code, subtotal);
     if (problem || !code) return { error: th.errors[problem ?? 'codeInvalid'] };
@@ -307,6 +315,17 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ id: st
   if (input.emailCustomer && email) after(() => (input.paid ? emailPaymentConfirmed(id) : emailOrderPlaced(id, { notifyShop: false })));
   revalidatePath('/admin');
   return { id, link: `${SITE.url}/order-placed?id=${encodeURIComponent(id)}&k=${key}` };
+}
+
+/** Changes which affiliate code an order counts for in the report ('' = none). */
+export async function updateOrderAffiliate(id: string, raw: string): Promise<{ error?: string }> {
+  await requireAdmin();
+  const wanted = normalizeCode(String(raw ?? ''));
+  if (wanted && !(await getDiscount(wanted))) return { error: th.errors.codeInvalid };
+  await setOrderCode(id, wanted);
+  revalidatePath('/admin');
+  revalidatePath('/admin/discounts');
+  return {};
 }
 
 /** The customer's order-page link for an existing order (to send on LINE etc.). */

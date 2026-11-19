@@ -9,13 +9,13 @@ import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
 import { formatPhone, normalizePhone, phoneSearchDigits } from '../../lib/phone';
 import type { Order } from '../../lib/types';
-import { markShipped, orderLinkForAdmin, updateOrderStatus } from '../../server/actions/admin';
+import { markShipped, orderLinkForAdmin, updateOrderAffiliate, updateOrderStatus } from '../../server/actions/admin';
 
 const SOURCE_LABEL: Record<string, string> = { line: 'LINE', facebook: 'Facebook', instagram: 'Instagram', phone: 'โทรศัพท์', walkin: 'หน้าร้าน / อีเวนต์', other: 'ช่องทางอื่น' };
 
 const CARRIERS = ['ไปรษณีย์ไทย', 'นิ่มเอ็กซ์เพรส', 'Flash Express', 'Kerry Express', 'J&T Express'];
 
-export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initialOrder?: string }) {
+export function OrdersAdmin({ orders, initialOrder, codes = [] }: { orders: Order[]; initialOrder?: string; codes?: { code: string; affiliate: string }[] }) {
   const [tab, setTab] = useState<OrderStatus | 'all'>('all');
   const [query, setQuery] = useState('');
   const [selId, setSelId] = useState(initialOrder && orders.some((o) => o.id === initialOrder) ? initialOrder : orders[0]?.id ?? '');
@@ -147,6 +147,25 @@ export function OrdersAdmin({ orders, initialOrder }: { orders: Order[]; initial
               {sel.discount > 0 && (
                 <li style={{ color: '#1d6b2a' }}><span>ส่วนลด (โค้ด {sel.discountCode})</span><span>−{baht(sel.discount)}</span></li>
               )}
+              <li className="admin-affiliate">
+                <label>
+                  <span className="muted">Affiliate / โค้ด</span>
+                  <select
+                    className="input input--sm"
+                    value={sel.discountCode}
+                    disabled={pending}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (sel.discount > 0 && !confirm('ออร์เดอร์นี้ได้ส่วนลดไปแล้ว การเปลี่ยนโค้ดจะเปลี่ยนแค่ยอดที่นับให้ affiliate ส่วนลดเท่าเดิม ต่อไหม?')) return;
+                      run(async () => { const r = await updateOrderAffiliate(sel.id, next); if (r.error) throw new Error(r.error); });
+                    }}
+                  >
+                    <option value="">— ไม่มี —</option>
+                    {codes.map((c) => <option key={c.code} value={c.code}>{c.code}{c.affiliate ? ` · ${c.affiliate}` : ''}</option>)}
+                    {sel.discountCode && !codes.some((c) => c.code === sel.discountCode) && <option value={sel.discountCode}>{sel.discountCode} (ลบแล้ว)</option>}
+                  </select>
+                </label>
+              </li>
               <li className="muted"><span>ค่าส่ง ({sel.kg} กก.)</span><span>{baht(sel.shipping)}</span></li>
               <li style={{ fontWeight: 600, fontSize: 16, paddingTop: 6 }}><span>รวม</span><span>{baht(sel.total)}</span></li>
             </ul>
