@@ -147,6 +147,13 @@
 .admin-email-log { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; }
 .admin-email-log li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0eadf; }
 
+/* ---------- Order export ---------- */
+.admin-export { margin-top: 14px; font-size: 14px; }
+.admin-export summary { cursor: pointer; color: var(--link); text-decoration: underline; width: fit-content; }
+.admin-export__body { margin-top: 10px; padding: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--white); border: 1px solid var(--line); border-radius: 14px; }
+.admin-export__body label { display: inline-flex; gap: 6px; align-items: center; }
+.admin-export__body .input { height: 40px; }
+
 /* ---------- New order ---------- */
 .admin-affiliate label { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; }
 .admin-affiliate select { max-width: 60%; height: 36px; font-size: 13px; }
