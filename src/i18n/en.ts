@@ -137,10 +137,6 @@ export const en: Dict = {
         q: 'How long does shipping take and how much is it?',
         a: `In-stock items are already assembled; the rubber top in your chosen colour takes 3-5 days. Pre-order items take 28-35 days to make. We ship with Thailand Post or Nim Express and send the tracking number within 1 day of shipping. Shipping is based on total weight: ${tiers}.`,
       },
-      {
-        q: 'What if something is damaged in transit?',
-        a: 'Take photos of the damage and tell us within 24 hours of receiving it. If the damage is minor and the item still works we’ll give you a discount; if it can’t be used we’ll replace it.',
-      },
     ],
   },
   custom: {
