@@ -123,6 +123,8 @@ export interface OrderItem {
   unitPrice: number;
   qty: number;
   kg: number;
+  /** Stock variant "size|colour" (Thai labels) for catalogue items; absent on custom lines and older orders. */
+  variant?: string;
 }
 
 export interface Order {

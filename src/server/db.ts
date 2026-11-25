@@ -140,6 +140,23 @@ const SCHEMA = [
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount integer NOT NULL DEFAULT 0`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS lang text NOT NULL DEFAULT 'th'`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'web'`,
+  `CREATE TABLE IF NOT EXISTS stock_levels (
+    slug text NOT NULL,
+    variant text NOT NULL,
+    qty integer NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (slug, variant)
+  )`,
+  `CREATE TABLE IF NOT EXISTS stock_log (
+    id serial PRIMARY KEY,
+    at timestamptz NOT NULL DEFAULT now(),
+    slug text NOT NULL,
+    variant text NOT NULL,
+    change integer NOT NULL,
+    qty_after integer,
+    reason text NOT NULL,
+    order_id text
+  )`,
   `CREATE TABLE IF NOT EXISTS email_log (
     id serial PRIMARY KEY,
     at timestamptz NOT NULL DEFAULT now(),

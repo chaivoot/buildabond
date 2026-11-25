@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Product } from '../../../../../lib/types';
 import { getProduct, listProducts } from '../../../../../server/products';
+import { listStock, stockHistory } from '../../../../../server/stock';
 import { ProductEditor } from '../../../../../views/admin/ProductEditor';
 
 const blank = (sort: number): Product => ({
@@ -17,5 +18,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   }
   const product = await getProduct(slug);
   if (!product) notFound();
-  return <ProductEditor product={product} isNew={false} allProducts={all} />;
+  const [stock, stockLog] = await Promise.all([listStock(slug), stockHistory(slug)]);
+  return <ProductEditor product={product} isNew={false} allProducts={all} stock={stock[slug] ?? {}} stockLog={stockLog} />;
 }

@@ -23,7 +23,8 @@ import { redirect } from 'next/navigation';
 import { th } from '../../i18n/th';
 import { checkPassword, createSessionToken, SESSION_COOKIE, SESSION_DAYS, verifySessionToken } from '../../lib/auth';
 import type { OrderItem, OrderStatus, Product, RequestStatus, ShopSettings } from '../../lib/types';
-import { createOrder, linkOrderToCustomer, orderAccessKey, setOrderCode, setOrderStatus, shipOrder } from '../orders';
+import { createOrder, getOrder, linkOrderToCustomer, orderAccessKey, setOrderCode, setOrderStatus, shipOrder } from '../orders';
+import { listStock, moveStock, renameStock, setStock } from '../stock';
 import { deleteProduct, getProduct, upsertProduct } from '../products';
 import { setRequestStatus } from '../requests';
 import { saveSettings } from '../settings';
@@ -55,7 +56,12 @@ export async function logout() {
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {
   await requireAdmin();
+  const before = await getOrder(id);
   await setOrderStatus(id, status);
+  // Cancelling puts the items back in stock; reopening a cancelled order takes them out again.
+  if (before && before.status !== status && (status === 'ยกเลิก' || before.status === 'ยกเลิก')) {
+    await moveStock(before.items, status === 'ยกเลิก' ? 1 : -1, status === 'ยกเลิก' ? 'ยกเลิกออร์เดอร์' : 'เปิดออร์เดอร์ที่ยกเลิกอีกครั้ง', id).catch((e) => console.error('[stock]', e));
+  }
   revalidatePath('/admin');
   if (status === 'ยืนยันแล้ว') after(() => emailPaymentConfirmed(id));
 }
@@ -107,6 +113,7 @@ export async function saveProduct(product: Product, previousSlug: string | null)
   product = { ...product, detail: { ...product.detail, videos, sizes, colorImages, soldOutColors } };
   if (slug !== previousSlug && (await getProduct(slug))) return { error: 'มีสินค้าที่ใช้ลิงก์นี้แล้ว' };
   await upsertProduct({ ...product, slug }, previousSlug ?? undefined);
+  if (previousSlug && previousSlug !== slug) await renameStock(previousSlug, slug);
   refreshStore();
   revalidatePath('/admin/products');
   return {};
@@ -271,7 +278,7 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ id: st
       // Admin orders may include hidden / pre-order products, so price them as if visible.
       const priced = p ? priceLine({ slug: l.slug, qty, size: l.size, color: l.color, magnets: l.magnets ? 1 : 0 }, { ...p, visible: true, comingSoon: false, custom: false }, settings, { allowSoldOut: true }) : null;
       if (!priced) return { error: `รายการที่ ${i + 1}: ไม่พบสินค้านี้` };
-      items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: override ?? priced.unitPrice, qty, kg: priced.kg });
+      items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: override ?? priced.unitPrice, qty, kg: priced.kg, ...(priced.variant ? { variant: priced.variant } : {}) });
     } else {
       const itemName = clean(l.name, 120);
       if (!itemName) return { error: `รายการที่ ${i + 1}: กรอกชื่อรายการ` };
@@ -308,6 +315,7 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ id: st
     name, phone, email, address, note: clean(input.note, 500), customerId: null, items, subtotal, discountCode, discount, shipping,
     total: subtotal - discount + shipping, kg, lang: 'th', source,
   });
+  await moveStock(items, -1, 'ออร์เดอร์จากหลังบ้าน', id).catch((e) => console.error('[stock] deduct failed', id, e));
   if (input.paid) await setOrderStatus(id, 'ยืนยันแล้ว');
   try {
     const customerId = email ? await recordCustomer(email, phone, addr, {}, id) : await customerIdByPhone(phone);
@@ -345,4 +353,20 @@ export async function checkDiscountCodeAdmin(raw: string, subtotal: number): Pro
   const problem = codeProblem(code, Math.max(0, Number(subtotal) || 0));
   if (problem || !code) return { ok: false, error: th.errors[problem ?? 'codeInvalid'] };
   return { ok: true, rule: { code: code.code, kind: code.kind, value: code.value, minSubtotal: code.minSubtotal } };
+}
+
+/* ---------- Stock (admin only) ---------- */
+
+/** Saves stock counts typed in the product editor; only the cells that changed are sent. null = stop tracking. */
+export async function saveStock(slug: string, changes: Record<string, number | null>): Promise<{ error?: string; stock?: Record<string, number> }> {
+  await requireAdmin();
+  const clean: Record<string, number | null> = {};
+  for (const [k, v] of Object.entries(changes ?? {}).slice(0, 200)) {
+    if (typeof k !== 'string' || !k.includes('|')) continue;
+    clean[k] = v === null || v === undefined || String(v) === '' ? null : Math.round(Number(v));
+    if (clean[k] !== null && !Number.isFinite(clean[k])) return { error: 'จำนวนสต็อกต้องเป็นตัวเลข' };
+  }
+  await setStock(slug, clean);
+  revalidatePath('/admin/products');
+  return { stock: (await listStock(slug))[slug] ?? {} };
 }

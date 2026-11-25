@@ -9,12 +9,18 @@ import { COLOR_PRESETS } from '../../data/seed';
 import type { CategoryId, Product, ProductDetail, ProductSize, ProductText, StockStatus } from '../../lib/types';
 import { PRODUCT_TOKENS_HELP } from '../../lib/productTokens';
 import { youTubeId, youTubeThumb } from '../../lib/video';
-import { removeProduct, saveProduct, uploadProductImage } from '../../server/actions/admin';
+import { removeProduct, saveProduct, saveStock, uploadProductImage } from '../../server/actions/admin';
+import { variantKey } from '../../lib/pricing';
+import { thaiDateTime } from '../../lib/dates';
+import type { StockLogRow } from '../../server/stock';
 
 interface Props {
   product: Product;
   isNew: boolean;
   allProducts: Product[];
+  /** Stock counts by variant ("size|colour"), admin only. */
+  stock?: Record<string, number>;
+  stockLog?: StockLogRow[];
 }
 
 const presetOf = (p: Product) => COLOR_PRESETS.find((c) => JSON.stringify(c.colors) === JSON.stringify(p.colors))?.id ?? 'keep';
@@ -51,10 +57,13 @@ function Field({ label, hint, children, wide }: { label: string; hint?: string; 
   );
 }
 
-export function ProductEditor({ product, isNew, allProducts }: Props) {
+export function ProductEditor({ product, isNew, allProducts, stock = {}, stockLog = [] }: Props) {
   const router = useRouter();
   const [p, setP] = useState<Product>(product);
   const [specs, setSpecs] = useState(specsToText(product.detail.specs));
+  // Stock cells as typed: '' = not tracked. Only cells that differ from what was loaded are saved.
+  const [stockSaved, setStockSaved] = useState<Record<string, number>>(stock);
+  const [stockInput, setStockInput] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(stock).map(([k, v]) => [k, String(v)])));
   const [specsEn, setSpecsEn] = useState(specsToText(product.en?.specs));
   const [videos, setVideos] = useState((product.detail.videos ?? []).join('\n'));
   const [preset, setPreset] = useState(presetOf(product));
@@ -128,6 +137,18 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
     start(async () => {
       const res = await saveProduct(next, isNew ? null : product.slug).catch((e: Error) => ({ error: e.message }));
       if (res.error) { setTab(tabForError(res.error)); return setError(res.error); }
+      const changes: Record<string, number | null> = {};
+      for (const k of new Set([...Object.keys(stockInput), ...Object.keys(stockSaved)])) {
+        const typed = (stockInput[k] ?? '').trim();
+        const was = stockSaved[k];
+        if (typed === '' && was !== undefined) changes[k] = null;
+        else if (typed !== '' && Number(typed) !== was) changes[k] = Number(typed);
+      }
+      if (Object.keys(changes).length) {
+        const st = await saveStock(next.slug.trim().toLowerCase(), changes).catch((e: Error) => ({ error: e.message, stock: undefined }));
+        if (st.error) { setTab('price'); return setError(st.error); }
+        if (st.stock) setStockSaved(st.stock);
+      }
       setSaved(true);
       setDirty(false);
       if (isNew || next.slug !== product.slug) router.replace(`/admin/products/${next.slug.trim().toLowerCase()}`);
@@ -251,6 +272,72 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
           <button type="button" className="btn btn--ghost btn--sm" style={{ marginTop: 10 }} onClick={() => setDetail({ sizes: [...sizes, { label: '', price: p.price, kg: p.kg }] })}>
             + เพิ่มขนาด
           </button>
+        </section>
+
+        <section hidden={tab !== 'price'} className="admin-card">
+          <h2>สต็อก <span className="tag tag--sand" style={{ verticalAlign: 'middle' }}>เห็นเฉพาะหลังบ้าน</span></h2>
+          <p className="small" style={{ marginBottom: 12 }}>
+            ใส่จำนวนของที่มีอยู่ ระบบตัดอัตโนมัติเมื่อมีออร์เดอร์ (เว็บและหลังบ้าน) และคืนเมื่อยกเลิกออร์เดอร์ · ช่องว่าง = ไม่นับสต็อก · ตอนนี้หน้าเว็บยังไม่แสดงและยังไม่ปิดขายเองเมื่อเหลือ 0 (ใช้ติ๊ก "หมด" ด้านล่าง)
+          </p>
+          {(() => {
+            const rows = sizes.length ? sizes.map((z) => z.label) : [''];
+            const cols = shownColors.length ? shownColors.map((c) => c.labelTh ?? c.label) : [''];
+            const total = rows.flatMap((r) => cols.map((c) => stockInput[variantKey(r || undefined, c || undefined)] ?? '')).filter((v) => v.trim() !== '').reduce((a, v) => a + Number(v), 0);
+            return (
+              <div className="admin__table-wrap" style={{ flex: 'none' }}>
+                <table className="admin__table admin-stock">
+                  <thead>
+                    <tr>
+                      <th>{sizes.length ? 'ขนาด' : ''}</th>
+                      {cols.map((c) => <th key={c} style={{ textAlign: 'center' }}>{c ? shownColors.find((x) => (x.labelTh ?? x.label) === c)?.label : 'จำนวน'}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r}>
+                        <td>{r || (sizes.length ? '' : p.name)}</td>
+                        {cols.map((c) => {
+                          const k = variantKey(r || undefined, c || undefined);
+                          const v = stockInput[k] ?? '';
+                          return (
+                            <td key={c} style={{ textAlign: 'center' }}>
+                              <input
+                                className="input input--sm"
+                                type="number"
+                                step={1}
+                                value={v}
+                                placeholder="—"
+                                data-low={v !== '' && Number(v) <= 0}
+                                aria-label={`สต็อก ${[r, c].filter(Boolean).join(' ') || p.name}`}
+                                onChange={(e) => { setStockInput((s) => ({ ...s, [k]: e.target.value })); touch(); }}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="small" style={{ padding: '8px 16px' }}>รวม {total} ชิ้น · ติดลบ = ขายเกินสต็อกไปแล้ว</p>
+              </div>
+            );
+          })()}
+          {stockLog.length > 0 && (
+            <details style={{ marginTop: 12 }}>
+              <summary className="small strong" style={{ cursor: 'pointer' }}>ประวัติสต็อกล่าสุด ({stockLog.length})</summary>
+              <ul className="admin-email-log">
+                {stockLog.map((l, i) => (
+                  <li key={i}>
+                    <span className={`tag ${l.change < 0 ? 'tag--orange' : 'tag--green'}`}>{l.change > 0 ? `+${l.change}` : l.change}</span>
+                    <span className="small">{thaiDateTime(l.at)}</span>
+                    <span>{l.variant.split('|').filter(Boolean).join(' · ') || p.name}</span>
+                    <span className="small">{l.reason}{l.orderId ? ` ${l.orderId}` : ''}</span>
+                    {l.qtyAfter !== null && <span className="small" style={{ marginLeft: 'auto' }}>เหลือ {l.qtyAfter}</span>}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </section>
 
         {(shownColors.length > 0 || sizes.length > 0) && (

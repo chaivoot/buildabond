@@ -147,6 +147,12 @@
 .admin-email-log { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; }
 .admin-email-log li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0eadf; }
 
+/* ---------- Stock ---------- */
+.admin-stock { min-width: 0; width: auto; }
+.admin-stock td, .admin-stock th { padding: 6px 10px; }
+.admin-stock .input { width: 84px; height: 38px; text-align: center; }
+.admin-stock .input[data-low='true'] { border-color: #d9733a; background: #fdf0e6; color: #8a3b0f; font-weight: 600; }
+
 /* ---------- Order export ---------- */
 .admin-export { margin-top: 14px; font-size: 14px; }
 .admin-export summary { cursor: pointer; color: var(--link); text-decoration: underline; width: fit-content; }
