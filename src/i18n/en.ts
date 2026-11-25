@@ -110,6 +110,7 @@ export const en: Dict = {
     leadPreorder: 'Made to order, about 28-35 days.',
     colorFallback: 'Colour',
     sizeLegend: 'Size',
+    soldOut: 'Sold out',
     magnetsTitle: (n) => `Add ${n} magnets`,
     magnetsHintBoard: 'Fitted under the board so it locks onto a Target Box or Slant Box.',
     magnetsHintBase: 'Fitted on top of the box to hold a Place Board in place.',

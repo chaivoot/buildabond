@@ -22,6 +22,8 @@ export interface ProductSize {
   price: number;
   /** Weight per piece in kg, used for shipping. */
   kg: number;
+  /** Out of stock: shown but can't be chosen. */
+  soldOut?: boolean;
 }
 
 export interface ProductDetail {
@@ -34,6 +36,8 @@ export interface ProductDetail {
   sizes?: ProductSize[];
   /** Photo per colour, keyed by the colour's Thai label; the main image switches to it when that colour is chosen. */
   colorImages?: Record<string, string>;
+  /** Colours that are out of stock (Thai labels): shown crossed out, can't be chosen. */
+  soldOutColors?: string[];
   story?: { title: string; body: string; img: string; alt: string };
   moves?: { tag: string; tone: string; title: string; body: string }[];
   specs?: [string, string][];
