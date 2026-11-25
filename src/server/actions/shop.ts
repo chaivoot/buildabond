@@ -8,6 +8,7 @@ import { priceLine, type CartLineInput } from '../../lib/pricing';
 import { shippingFee } from '../../lib/shipping';
 import { codeProblem, discountFor, normalizeCode, type DiscountRule } from '../../lib/discount';
 import { getDiscount, redeemDiscount, releaseDiscount } from '../discounts';
+import { moveStock } from '../stock';
 import type { Dict } from '../../i18n/th';
 import type { Order, OrderItem } from '../../lib/types';
 import { allowAttempt, isEmail, isPhone, lookupCustomer, normalizeEmail, normalizePhone, recordCustomer, verifiedAddress, type CustomerAddress, type Lookup } from '../customers';
@@ -73,7 +74,7 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
     const qty = Math.max(1, Math.min(99, Math.floor(Number(line.qty) || 1)));
     const priced = priceLine(line, bySlug.get(line.slug), settings);
     if (!priced) return { ok: false, error: 'unavailable' };
-    items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: priced.unitPrice, qty, kg: priced.kg });
+    items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: priced.unitPrice, qty, kg: priced.kg, ...(priced.variant ? { variant: priced.variant } : {}) });
   }
   const subtotal = items.reduce((a, i) => a + i.unitPrice * i.qty, 0);
   const kg = Math.round(items.reduce((a, i) => a + i.kg * i.qty, 0) * 10) / 10;
@@ -100,6 +101,11 @@ export async function placeOrder(input: CheckoutInput): Promise<Result<{ id: str
     throw e;
   }
   const { id, key } = placed;
+  try {
+    await moveStock(items, -1, 'ออร์เดอร์จากเว็บ', id);
+  } catch (e) {
+    console.error('[stock] deduct failed', id, e);
+  }
   // Remember this customer (keyed by email + phone), log any changes against this order, and link the order to them.
   try {
     const customerId = await recordCustomer(email, phone, addr, old, id);

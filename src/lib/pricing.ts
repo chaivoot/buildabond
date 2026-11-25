@@ -24,6 +24,8 @@ export interface PricedLine {
   unitPrice: number;
   kg: number;
   status: string;
+  /** Stock variant key, see variantKey(). */
+  variant?: string;
 }
 
 /** Price one cart line from the catalogue. Returns null if it can't be sold. */
@@ -45,7 +47,10 @@ export function priceLine(line: CartLineInput, product: Product | undefined, set
   const status =
     product.stock === 'preorder' ? 'พรีออเดอร์ · 28-35 วัน' : product.colors.length && product.cat === 'sb' ? 'พร้อมส่ง · ทำผิวยาง 3-5 วัน' : 'พร้อมส่ง';
   const base = size ? size.price : product.price;
-  return { slug: product.slug, name: product.name, opt, unitPrice: base + magnets * settings.magnetPrice, kg: size ? size.kg : product.kg, status };
+  return {
+    slug: product.slug, name: product.name, opt, unitPrice: base + magnets * settings.magnetPrice, kg: size ? size.kg : product.kg, status,
+    variant: variantKey(size?.label, color ? color.labelTh ?? color.label : undefined),
+  };
 }
 
 /** The chosen size, clamped to the product's list; null when the product has no sizes. */
@@ -64,3 +69,6 @@ export function firstAvailable<T>(items: T[], soldOut: (t: T) => boolean): numbe
   const i = items.findIndex((t) => !soldOut(t));
   return i < 0 ? 0 : i;
 }
+
+/** Stock is counted per size × colour, keyed by their Thai labels ("" when the product has none). */
+export const variantKey = (size?: string, color?: string) => `${size ?? ''}|${color ?? ''}`;
