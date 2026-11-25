@@ -83,6 +83,9 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
   // Colours as they'll be saved: the chosen preset's, or the product's own.
   const shownColors = COLOR_PRESETS.find((c) => c.id === preset)?.colors ?? p.colors;
   const colorImages = p.detail.colorImages ?? {};
+  const soldOutColors = p.detail.soldOutColors ?? [];
+  const toggleColorStock = (key: string, out: boolean) =>
+    setDetail({ soldOutColors: out ? [...soldOutColors.filter((k) => k !== key), key] : soldOutColors.filter((k) => k !== key) });
   const setColorImage = (key: string, url: string | null) => {
     const next = { ...colorImages };
     if (url) next[key] = url; else delete next[key];
@@ -249,6 +252,47 @@ export function ProductEditor({ product, isNew, allProducts }: Props) {
             + เพิ่มขนาด
           </button>
         </section>
+
+        {(shownColors.length > 0 || sizes.length > 0) && (
+          <section hidden={tab !== 'price'} className="admin-card">
+            <h2>ของหมด</h2>
+            <p className="small" style={{ marginBottom: 12 }}>
+              ติ๊กตัวเลือกที่ของหมด ลูกค้ายังเห็นแต่กดเลือกไม่ได้ (ขึ้นว่า "หมด") เอาเครื่องหมายออกเมื่อมีของ · ถ้าหมดทุกตัวเลือก ปุ่มใส่ตะกร้าจะขึ้นว่าหมด
+              ส่วนการสร้างออร์เดอร์ในหลังบ้านยังเลือกได้ เผื่อรับพรีออเดอร์
+            </p>
+            {shownColors.length > 0 && (
+              <fieldset className="plain">
+                <legend className="small strong">สี</legend>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 22px' }}>
+                  {shownColors.map((c) => {
+                    const key = c.labelTh ?? c.label;
+                    const out = soldOutColors.includes(key);
+                    return (
+                      <label key={key} className="admin-check">
+                        <input type="checkbox" checked={out} onChange={(e) => toggleColorStock(key, e.target.checked)} />
+                        <span className="swatch" style={{ background: c.swatch, opacity: out ? 0.35 : 1 }} />
+                        {c.label}{out && <span className="tag tag--orange">หมด</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+            {sizes.length > 0 && (
+              <fieldset className="plain" style={{ marginTop: 10 }}>
+                <legend className="small strong">ขนาด</legend>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 22px' }}>
+                  {sizes.map((s, i) => (
+                    <label key={i} className="admin-check">
+                      <input type="checkbox" checked={!!s.soldOut} onChange={(e) => setSizeAt(i, { soldOut: e.target.checked })} />
+                      {s.label || `ขนาดที่ ${i + 1}`}{s.soldOut && <span className="tag tag--orange">หมด</span>}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          </section>
+        )}
 
         <section hidden={tab !== 'en'} className="admin-card" lang="en">
           <h2>ภาษาอังกฤษ (English)</h2>

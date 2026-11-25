@@ -65,7 +65,7 @@ export function NewOrderAdmin({ products, customers, settings, codes }: { produc
     if (!l.slug) return { unit: Number(l.unitPrice) || 0, kg: Number(l.kg) || 0, opt: '' };
     const p = bySlug.get(l.slug);
     if (!p) return { unit: 0, kg: 0, opt: '' };
-    const priced = priceLine({ slug: p.slug, qty: l.qty, size: l.size, color: l.color, magnets: l.magnets ? 1 : 0 }, { ...p, visible: true, comingSoon: false, custom: false }, settings);
+    const priced = priceLine({ slug: p.slug, qty: l.qty, size: l.size, color: l.color, magnets: l.magnets ? 1 : 0 }, { ...p, visible: true, comingSoon: false, custom: false }, settings, { allowSoldOut: true });
     const unit = l.unitPrice === null || l.unitPrice === undefined || String(l.unitPrice) === '' ? priced?.unitPrice ?? 0 : Number(l.unitPrice);
     return { unit, kg: priced?.kg ?? 0, opt: priced?.opt ?? '', catalogue: priced?.unitPrice ?? 0 };
   };

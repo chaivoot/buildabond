@@ -180,6 +180,9 @@ fieldset.plain legend { padding: 0; font-size: 15px; font-weight: 600; }
   border-radius: 14px; padding: 8px; font-size: 13px;
 }
 .option[aria-pressed='true'] { border: 2px solid var(--ink); }
+.option:disabled { cursor: not-allowed; color: var(--ink-3); background: var(--sand-2); border-style: dashed; }
+.option:disabled .swatch { opacity: 0.35; }
+.option__soldout { font-size: 11px; font-weight: 600; color: #8e1f0b; }
 
 .swatch { width: 20px; height: 20px; border-radius: 50%; flex: none; }
 .swatch--lg { width: 28px; height: 28px; }

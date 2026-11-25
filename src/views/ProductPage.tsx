@@ -13,7 +13,7 @@ import { baht } from '../data/format';
 import { img } from '../data/images';
 import { categoryLabel, type Product } from '../data/products';
 import { useShopSettings } from '../context/SettingsContext';
-import { priceLine } from '../lib/pricing';
+import { firstAvailable, isColorSoldOut, priceLine } from '../lib/pricing';
 import { tiersSummary } from '../lib/shipping';
 import { css } from '../data/style';
 import { useI18n } from '../i18n/LocaleProvider';
@@ -31,8 +31,9 @@ export function ProductPage({ product: p, related }: { product: Product; related
   const { add, openDrawer } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [color, setColor] = useState(0);
-  const [size, setSize] = useState(0);
+  // Start on the first option that isn't sold out.
+  const [color, setColor] = useState(() => firstAvailable(p.colors, (c) => isColorSoldOut(p, c)));
+  const [size, setSize] = useState(() => firstAvailable(d.sizes ?? [], (s) => !!s.soldOut));
   // A colour with its own photo takes over the main frame until a thumbnail is picked.
   const [colorShown, setColorShown] = useState(false);
   const [withMagnets, setWithMagnets] = useState(false);
@@ -91,7 +92,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
             <span className="buy-bar__name">{p.name}{sizes.length ? ` · ${sizeName(size)}` : ''}{colorName ? ` · ${colorName}` : ''}</span>
             <span className="small">{baht(total)}{magnets ? ` · ${pt.magnetsShort(magnets)}` : ''}</span>
           </div>
-          <button type="button" className="btn btn--primary btn--sm" style={{ fontSize: 15, padding: '0 20px' }} onClick={addToCart}>{pt.addToCart}</button>
+          <button type="button" className="btn btn--primary btn--sm" style={{ fontSize: 15, padding: '0 20px' }} disabled={!priced} onClick={addToCart}>{priced ? pt.addToCart : pt.soldOut}</button>
         </div>
       </div>
 
@@ -152,16 +153,16 @@ export function ProductPage({ product: p, related }: { product: Product; related
                 <legend>{pt.sizeLegend}<span style={{ fontWeight: 400, color: 'var(--ink-2)' }}> · {sizeName(size)}</span></legend>
                 <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {sizes.map((s, i) => (
-                    <button key={i} type="button" className="option pdp-size" aria-pressed={i === size} onClick={() => setSize(i)}>
+                    <button key={i} type="button" className="option pdp-size" aria-pressed={i === size} disabled={!!s.soldOut} onClick={() => setSize(i)}>
                       <span>{sizeName(i)}</span>
-                      <span className="small">{baht(s.price)}</span>
+                      <span className="small">{s.soldOut ? pt.soldOut : baht(s.price)}</span>
                     </button>
                   ))}
                 </div>
               </fieldset>
             )}
 
-            {hasColors && <ColorPicker legend={p.colorsLabel || pt.colorFallback} colors={p.colors} value={color} onChange={chooseColor} />}
+            {hasColors && <ColorPicker legend={p.colorsLabel || pt.colorFallback} colors={p.colors} value={color} onChange={chooseColor} isSoldOut={(c) => isColorSoldOut(p, c)} soldOutLabel={pt.soldOut} />}
 
             {offersMagnets && (
               <label className="magnet-option" data-on={withMagnets}>
@@ -175,7 +176,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
             )}
 
             <div className="stack">
-              <button type="button" className="btn btn--primary btn--lg btn--block" onClick={addToCart}>{pt.addToCart} · {baht(total)}</button>
+              <button type="button" className="btn btn--primary btn--lg btn--block" disabled={!priced} onClick={addToCart}>{priced ? `${pt.addToCart} · ${baht(total)}` : pt.soldOut}</button>
               <p className="small" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <TruckIcon style={{ flex: 'none', marginTop: 1 }} />
                 {pt.shippingNote(tiers)}

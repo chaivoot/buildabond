@@ -94,6 +94,7 @@ export async function saveProduct(product: Product, previousSlug: string | null)
     ...(String(z.labelEn ?? '').trim() ? { labelEn: String(z.labelEn).trim().slice(0, 60) } : {}),
     price: Math.max(0, Math.round(Number(z.price) || 0)),
     kg: Math.max(0, Math.round((Number(z.kg) || 0) * 100) / 100),
+    ...(z.soldOut ? { soldOut: true } : {}),
   }));
   if (sizes.length > 12) return { error: 'ใส่ได้ไม่เกิน 12 ขนาด' };
   if (sizes.some((z) => !z.label)) return { error: 'กรอกชื่อขนาดให้ครบทุกแถว' };
@@ -101,7 +102,9 @@ export async function saveProduct(product: Product, previousSlug: string | null)
   const colorImages = Object.fromEntries(
     Object.entries(product.detail.colorImages ?? {}).filter(([k, v]) => typeof v === 'string' && v && product.colors.some((c) => (c.labelTh ?? c.label) === k)),
   );
-  product = { ...product, detail: { ...product.detail, videos, sizes, colorImages } };
+  const colorKeys = new Set(product.colors.map((c) => c.labelTh ?? c.label));
+  const soldOutColors = (product.detail.soldOutColors ?? []).filter((k) => colorKeys.has(k));
+  product = { ...product, detail: { ...product.detail, videos, sizes, colorImages, soldOutColors } };
   if (slug !== previousSlug && (await getProduct(slug))) return { error: 'มีสินค้าที่ใช้ลิงก์นี้แล้ว' };
   await upsertProduct({ ...product, slug }, previousSlug ?? undefined);
   refreshStore();
@@ -266,7 +269,7 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ id: st
     if (l.slug) {
       const p = bySlug.get(l.slug);
       // Admin orders may include hidden / pre-order products, so price them as if visible.
-      const priced = p ? priceLine({ slug: l.slug, qty, size: l.size, color: l.color, magnets: l.magnets ? 1 : 0 }, { ...p, visible: true, comingSoon: false, custom: false }, settings) : null;
+      const priced = p ? priceLine({ slug: l.slug, qty, size: l.size, color: l.color, magnets: l.magnets ? 1 : 0 }, { ...p, visible: true, comingSoon: false, custom: false }, settings, { allowSoldOut: true }) : null;
       if (!priced) return { error: `รายการที่ ${i + 1}: ไม่พบสินค้านี้` };
       items.push({ slug: priced.slug, name: priced.name, opt: priced.opt, unitPrice: override ?? priced.unitPrice, qty, kg: priced.kg });
     } else {

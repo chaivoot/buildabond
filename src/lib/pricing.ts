@@ -27,7 +27,8 @@ export interface PricedLine {
 }
 
 /** Price one cart line from the catalogue. Returns null if it can't be sold. */
-export function priceLine(line: CartLineInput, product: Product | undefined, settings: ShopSettings): PricedLine | null {
+/** `allowSoldOut`: admin-entered orders may still use an option marked sold out. */
+export function priceLine(line: CartLineInput, product: Product | undefined, settings: ShopSettings, opts: { allowSoldOut?: boolean } = {}): PricedLine | null {
   if (line.custom) {
     const { w, l, h } = line.custom;
     const q = quoteCustomSize(w, l, h);
@@ -39,6 +40,7 @@ export function priceLine(line: CartLineInput, product: Product | undefined, set
   const magnets = product.magnets && (line.magnets ?? 0) > 0 ? Math.max(0, Math.floor(product.magnetCount)) : 0;
   const color = product.colors.length ? product.colors[Math.max(0, Math.min(product.colors.length - 1, line.color ?? 0))] : null;
   const size = pickSize(product, line.size);
+  if (!opts.allowSoldOut && (size?.soldOut || (color && isColorSoldOut(product, color)))) return null;
   const opt = [size?.label, color?.label, magnets ? `แม่เหล็ก ${magnets} ชิ้น` : null].filter(Boolean).join(' · ') || '—';
   const status =
     product.stock === 'preorder' ? 'พรีออเดอร์ · 28-35 วัน' : product.colors.length && product.cat === 'sb' ? 'พร้อมส่ง · ทำผิวยาง 3-5 วัน' : 'พร้อมส่ง';
@@ -51,4 +53,14 @@ export function pickSize(product: Product, index: number | undefined) {
   const sizes = product.detail.sizes ?? [];
   if (!sizes.length) return null;
   return sizes[Math.max(0, Math.min(sizes.length - 1, Math.floor(Number(index) || 0)))];
+}
+
+/** A colour marked out of stock in the admin (matched by its Thai label). */
+export const isColorSoldOut = (product: Product, color: { label: string; labelTh?: string }) =>
+  (product.detail.soldOutColors ?? []).includes(color.labelTh ?? color.label);
+
+/** First option that isn't sold out (0 if all are). */
+export function firstAvailable<T>(items: T[], soldOut: (t: T) => boolean): number {
+  const i = items.findIndex((t) => !soldOut(t));
+  return i < 0 ? 0 : i;
 }
