@@ -39,8 +39,7 @@ export function SiteHeader({ extra, activeCat }: { extra?: ReactNode; activeCat?
   const current = path.replace(/^\/(en|th)(?=\/|$)/, '') || '/';
   const nav = [
     { to: '/shop?cat=sb', label: 'Strength & Balance', active: activeCat === 'sb' },
-    { to: '/shop?cat=ip', label: 'Interactive Play', active: activeCat === 'ip' },
-    { to: '/shop?cat=tug', label: 'Tug Toys', active: activeCat === 'tug' },
+    { to: '/shop?cat=play', label: 'Tug & Interactive Toys', active: activeCat === 'play' },
     { to: '/custom', label: t.common.navCustom, active: current === '/custom' },
     { to: '/business', label: t.common.navBusiness, active: current === '/business' },
     { to: '/track', label: t.common.navTrack, active: current === '/track' },

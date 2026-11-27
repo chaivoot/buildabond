@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { CATEGORIES, type CategoryId } from '../../../data/products';
+import { parseShopFilter } from '../../../data/products';
 import type { Locale } from '../../../i18n/config';
 import { getDict } from '../../../i18n';
 import { localizeProduct } from '../../../lib/productText';
@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params, searchParams }: Props) {
   const [{ lang }, { cat }] = await Promise.all([params, searchParams]);
-  const valid = CATEGORIES.some((c) => c.id === cat) ? (cat as CategoryId) : 'all';
+  const valid = parseShopFilter(cat);
   const products = (await listProducts()).map((p) => localizeProduct(p, lang));
   return <ShopPage cat={valid} products={products} />;
 }

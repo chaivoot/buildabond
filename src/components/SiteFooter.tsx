@@ -20,8 +20,7 @@ export function SiteFooter() {
           <div className="footer-col">
             <p>{f.products}</p>
             <Link href="/shop?cat=sb">Strength &amp; Balance</Link>
-            <Link href="/shop?cat=ip">Interactive Play</Link>
-            <Link href="/shop?cat=tug">Tug Toys</Link>
+            <Link href="/shop?cat=play">Tug &amp; Interactive Toys</Link>
             <Link href="/custom">{f.customSize}</Link>
           </div>
           <div className="footer-col">
