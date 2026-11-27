@@ -15,8 +15,8 @@ const BENEFIT_ICONS = [<StrengthIcon key="s" />, <BrainIcon key="b" />, <HeartIc
 
 const CATEGORY_CARDS = [
   { to: '/shop?cat=sb', bg: 'var(--sky-tint)', img: img.dogsOnBoxes, title: 'Strength & Balance' },
-  { to: '/shop?cat=ip', bg: 'var(--orange-tint)', img: img.beagleFlirt, title: 'Interactive Play' },
-  { to: '/shop?cat=tug', bg: 'var(--sand)', img: img.sheepskinBungee, title: 'Tug Toys', cutout: true },
+  { to: '/shop?cat=play', bg: 'var(--orange-tint)', img: img.beagleFlirt, title: 'Interactive Play' },
+  { to: '/shop?cat=play', bg: 'var(--sand)', img: img.sheepskinBungee, title: 'Tug Toys', cutout: true },
 ];
 
 const TRAINING = [

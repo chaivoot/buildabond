@@ -11,7 +11,7 @@ import { SiteHeader } from '../components/SiteHeader';
 import { useCart } from '../context/CartContext';
 import { baht } from '../data/format';
 import { img } from '../data/images';
-import { categoryLabel, type Product } from '../data/products';
+import { categoryLabel, filterForCategory, type Product } from '../data/products';
 import { useShopSettings } from '../context/SettingsContext';
 import { firstAvailable, isColorSoldOut, priceLine } from '../lib/pricing';
 import { tiersSummary } from '../lib/shipping';
@@ -99,7 +99,7 @@ export function ProductPage({ product: p, related }: { product: Product; related
       <main>
         <nav aria-label="breadcrumb" className="container" style={{ paddingTop: 14, fontSize: 13, color: 'var(--ink-3)' }}>
           <Link href="/shop" style={{ color: 'var(--ink-2)' }}>{pt.breadcrumbAll}</Link> /{' '}
-          <Link href={`/shop?cat=${p.cat}`} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>{categoryLabel(p.cat)}</Link>
+          <Link href={`/shop?cat=${filterForCategory(p.cat)}`} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>{categoryLabel(p.cat)}</Link>
         </nav>
 
         <section className="container split" style={{ paddingTop: 12, gap: '28px 48px' }}>
