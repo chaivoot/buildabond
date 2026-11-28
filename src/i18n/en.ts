@@ -347,6 +347,9 @@ export const en: Dict = {
     preparing: 'We’re finishing the rubber top in your colour, about 3-5 days before shipping.',
     headlines: ['Waiting for payment', 'Checking your slip', 'Paid, preparing your order', 'On its way'],
     notYet: 'Not yet',
+    checkParcel: (carrier) => `Track on ${carrier}`,
+    copyNo: 'Copy tracking number',
+    copiedNo: 'Tracking number copied ✓',
     done: 'Done',
   },
   status: {

@@ -4,6 +4,7 @@
  * Customer emails use the language they ordered in; shop alerts are in Thai.
  */
 import { SITE } from '../data/site';
+import { trackingLink } from '../lib/carriers';
 import type { Order, ShopSettings } from '../lib/types';
 import { logEmail, sendEmail } from './email';
 import { getOrderForEmail } from './orders';
@@ -187,7 +188,9 @@ export const emailShipped = (id: string) => guarded('emailShipped', id, async ()
   if (!x) return;
   const { order: o, lang, settings: s } = x;
   const t = T[lang];
-  const trackUrl = `${SITE.url}/track`;
+  const carrierLink = trackingLink(o.carrier, o.tracking);
+  // Straight to the carrier's tracking page when we know it; otherwise our order-tracking page.
+  const trackUrl = carrierLink?.url ?? `${SITE.url}/track`;
   await sendEmail({
     to: o.email,
     replyTo: s.shopEmail,

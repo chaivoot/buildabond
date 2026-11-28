@@ -8,6 +8,7 @@ import { ORDER_STATUSES, StatusPill, type OrderStatus } from '../../components/S
 import { baht } from '../../data/format';
 import { thaiDateTime } from '../../lib/dates';
 import { downloadCsv } from '../../lib/csv';
+import { trackingLink } from '../../lib/carriers';
 import { formatPhone, normalizePhone, phoneSearchDigits } from '../../lib/phone';
 import type { Order } from '../../lib/types';
 import { markShipped, orderLinkForAdmin, updateOrderAffiliate, updateOrderStatus } from '../../server/actions/admin';
@@ -272,6 +273,7 @@ export function OrdersAdmin({ orders, initialOrder, codes = [] }: { orders: Orde
             {sel.status === 'จัดส่งแล้ว' && (
               <div className="admin-note admin-note--ok" style={{ marginTop: 18 }}>
                 ส่งแล้ว {thaiDateTime(sel.shippedAt)} · {sel.carrier} · <span style={{ fontWeight: 600, letterSpacing: '0.03em' }}>{sel.tracking}</span>
+                {trackingLink(sel.carrier, sel.tracking) && <> · <a href={trackingLink(sel.carrier, sel.tracking)!.url} target="_blank" rel="noopener noreferrer">เช็คสถานะ ↗</a></>}
               </div>
             )}
 
