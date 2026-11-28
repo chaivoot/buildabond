@@ -13,3 +13,8 @@ li[data-done='true'] .timeline__dot { background: var(--ink); border-color: var(
 li[data-done='true'] .timeline__title { color: var(--ink); }
 li[data-active='true'] .timeline__title { font-weight: 600; }
 .timeline__extra { margin-top: 8px; font-size: 14px; line-height: 1.6; background: var(--white); border-radius: 12px; padding: 10px 12px; }
+
+.tracking-link { display: flex; flex-direction: column; gap: 8px; }
+.tracking-link__no { letter-spacing: 0.04em; }
+.tracking-link__actions { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.tracking-link__actions .btn { height: 40px; padding: 0 16px; font-size: 14px; }

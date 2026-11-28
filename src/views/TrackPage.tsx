@@ -1,5 +1,6 @@
 'use client';
 
+import { TrackingLink } from '../components/TrackingLink';
 import { useState, type FormEvent } from 'react';
 import { SiteHeader } from '../components/SiteHeader';
 import { StatusPill } from '../components/StatusPill';
@@ -91,7 +92,8 @@ function OrderStatusCard({ order }: { order: TrackedOrder }) {
         {tr.steps.map((title, i) => {
           const done = i <= cur;
           const active = i === cur;
-          const extra = active ? (i === 3 && order.tracking ? `${order.carrier} · ${order.tracking}` : i === 2 ? tr.preparing : undefined) : undefined;
+          const extra = active && i === 2 ? tr.preparing : undefined;
+          const parcel = active && i === 3 && order.tracking;
           return (
             <li key={title} data-done={done} data-active={active}>
               <div className="timeline__rail">
@@ -104,6 +106,11 @@ function OrderStatusCard({ order }: { order: TrackedOrder }) {
                 <p className="timeline__title">{title}</p>
                 <p className="small" style={{ marginTop: 2 }}>{done ? thaiDateTime(STEP_TIMES[i](order), true, lang) || tr.done : i === cur + 1 ? tr.waits[i] : tr.notYet}</p>
                 {extra && <p className="timeline__extra">{extra}</p>}
+                {parcel && (
+                  <div className="timeline__extra">
+                    <TrackingLink carrier={order.carrier} tracking={order.tracking} labels={{ check: tr.checkParcel, copy: tr.copyNo, copied: tr.copiedNo }} />
+                  </div>
+                )}
               </div>
             </li>
           );
