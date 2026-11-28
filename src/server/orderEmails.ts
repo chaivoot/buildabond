@@ -25,6 +25,7 @@ const T = {
     total: 'ยอดที่ต้องโอน',
     viewOrder: 'ดูออร์เดอร์และอัปโหลดสลิป',
     viewOrderPaid: 'ดูออร์เดอร์',
+    trackOrder: 'ติดตามสถานะออร์เดอร์',
     track: 'ติดตามพัสดุ',
     footer: 'มีคำถาม ตอบกลับอีเมลนี้ หรือทักทาง LINE @730ogvop ได้เลย',
     placed: {
@@ -54,6 +55,7 @@ const T = {
     total: 'Amount to pay',
     viewOrder: 'View order and upload slip',
     viewOrderPaid: 'View order',
+    trackOrder: 'Track your order',
     track: 'Track your parcel',
     footer: 'Questions? Reply to this email or message us on LINE @730ogvop.',
     placed: {
@@ -77,6 +79,8 @@ const T = {
 };
 
 const orderLink = (o: Order, key: string) => `${SITE.url}/order-placed?id=${encodeURIComponent(o.id)}&k=${encodeURIComponent(key)}`;
+/** Our tracking page, opened straight on this order (the key replaces typing phone/email). */
+const trackOrderLink = (o: Order, key: string) => `${SITE.url}/track?order=${encodeURIComponent(o.id)}&k=${encodeURIComponent(key)}`;
 const adminLink = (o: Order) => `${SITE.url}/admin?order=${encodeURIComponent(o.id)}`;
 
 function layout(body: string, footer: string) {
@@ -87,6 +91,10 @@ function layout(body: string, footer: string) {
 <p style="margin:16px 4px 0;font-size:13px;color:#6b5d4f">${esc(footer)}</p>
 </div></body></html>`;
 }
+
+/** A plain secondary link under the main button. */
+const textLink = (href: string, label: string) =>
+  `<p style="margin:10px 0 0"><a href="${esc(href)}" style="color:#2b5f8a">${esc(label)} →</a></p>`;
 
 const button = (href: string, label: string) =>
   `<p style="margin:22px 0 4px"><a href="${esc(href)}" style="display:inline-block;background:#2b2016;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">${esc(label)}</a></p>`;
@@ -140,8 +148,8 @@ export const emailOrderPlaced = (id: string, opts: { notifyShop?: boolean } = {}
       to: o.email,
       replyTo: s.shopEmail,
       subject: t.placed.subject(o.id),
-      html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.placed.lead}</p><p style="margin:0;color:#6b5d4f">${t.orderNo} <strong style="color:#2b2016">${o.id}</strong></p>${summary(o, t)}${pay}${button(orderLink(o, key), t.viewOrder)}`, t.footer),
-      text: `${t.hello(o.name)}\n\n${t.placed.lead}\n\n${t.orderNo}: ${o.id}\n${textSummary(o, t)}\n\n${t.placed.pay}: ${t.placed.bank(s.bank)}\n${orderLink(o, key)}\n\n${t.footer}`,
+      html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.placed.lead}</p><p style="margin:0;color:#6b5d4f">${t.orderNo} <strong style="color:#2b2016">${o.id}</strong></p>${summary(o, t)}${pay}${button(orderLink(o, key), t.viewOrder)}${textLink(trackOrderLink(o, key), t.trackOrder)}`, t.footer),
+      text: `${t.hello(o.name)}\n\n${t.placed.lead}\n\n${t.orderNo}: ${o.id}\n${textSummary(o, t)}\n\n${t.placed.pay}: ${t.placed.bank(s.bank)}\n${orderLink(o, key)}\n${t.trackOrder}: ${trackOrderLink(o, key)}\n\n${t.footer}`,
     }),
     notifyShop && sendEmail({
       to: s.shopEmail,
@@ -177,8 +185,8 @@ export const emailPaymentConfirmed = (id: string) => guarded('emailPaymentConfir
     to: o.email,
     replyTo: s.shopEmail,
     subject: t.confirmed.subject(o.id),
-    html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.confirmed.lead}</p><p style="margin:0;color:#6b5d4f">${t.orderNo} <strong style="color:#2b2016">${o.id}</strong></p>${summary(o, t)}${button(orderLink(o, key), t.viewOrderPaid)}`, t.footer),
-    text: `${t.hello(o.name)}\n\n${t.confirmed.lead}\n\n${t.orderNo}: ${o.id}\n${textSummary(o, t)}\n${orderLink(o, key)}\n\n${t.footer}`,
+    html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.confirmed.lead}</p><p style="margin:0;color:#6b5d4f">${t.orderNo} <strong style="color:#2b2016">${o.id}</strong></p>${summary(o, t)}${button(trackOrderLink(o, key), t.trackOrder)}${textLink(orderLink(o, key), t.viewOrderPaid)}`, t.footer),
+    text: `${t.hello(o.name)}\n\n${t.confirmed.lead}\n\n${t.orderNo}: ${o.id}\n${textSummary(o, t)}\n${t.trackOrder}: ${trackOrderLink(o, key)}\n\n${t.footer}`,
   });
 });
 
@@ -186,7 +194,7 @@ export const emailPaymentConfirmed = (id: string) => guarded('emailPaymentConfir
 export const emailShipped = (id: string) => guarded('emailShipped', id, async () => {
   const x = await load(id);
   if (!x) return;
-  const { order: o, lang, settings: s } = x;
+  const { order: o, key, lang, settings: s } = x;
   const t = T[lang];
   const carrierLink = trackingLink(o.carrier, o.tracking);
   // Straight to the carrier's tracking page when we know it; otherwise our order-tracking page.
@@ -195,7 +203,7 @@ export const emailShipped = (id: string) => guarded('emailShipped', id, async ()
     to: o.email,
     replyTo: s.shopEmail,
     subject: t.shipped.subject(o.id),
-    html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.shipped.lead}</p><p style="margin:0">${t.orderNo} <strong>${o.id}</strong><br>${t.shipped.carrier}: ${esc(o.carrier)}<br>${t.shipped.tracking}: <strong style="font-size:17px;letter-spacing:.04em">${esc(o.tracking)}</strong></p>${button(trackUrl, t.track)}`, t.footer),
-    text: `${t.hello(o.name)}\n\n${t.shipped.lead}\n${t.orderNo}: ${o.id}\n${t.shipped.carrier}: ${o.carrier}\n${t.shipped.tracking}: ${o.tracking}\n${trackUrl}\n\n${t.footer}`,
+    html: layout(`<p style="margin:0">${esc(t.hello(o.name))}</p><p>${t.shipped.lead}</p><p style="margin:0">${t.orderNo} <strong>${o.id}</strong><br>${t.shipped.carrier}: ${esc(o.carrier)}<br>${t.shipped.tracking}: <strong style="font-size:17px;letter-spacing:.04em">${esc(o.tracking)}</strong></p>${button(trackUrl, t.track)}${textLink(trackOrderLink(o, key), t.trackOrder)}`, t.footer),
+    text: `${t.hello(o.name)}\n\n${t.shipped.lead}\n${t.orderNo}: ${o.id}\n${t.shipped.carrier}: ${o.carrier}\n${t.shipped.tracking}: ${o.tracking}\n${trackUrl}\n${t.trackOrder}: ${trackOrderLink(o, key)}\n\n${t.footer}`,
   });
 });
